@@ -120,6 +120,13 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void*           mmap(void*, int, int, int, int, int);
+int             munmap(void*, uint);
+
+//kmalloc.c
+void*           kmalloc(uint);
+void            kmfree(void*);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);

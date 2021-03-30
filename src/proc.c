@@ -532,3 +532,11 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
+  return addr;
+}
+
+int munmap(void* addr, uint length){
+  return (int)length;
+}
