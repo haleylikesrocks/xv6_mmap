@@ -96,8 +96,7 @@ int sys_kmalloc(void){
   if(argint(0, &n) < 0)
     return -1;
   
-  kmalloc((uint)n);
-  return 0;
+  return (int)kmalloc((uint)n);
 }
 
 int sys_kmfree(void){

@@ -1,7 +1,7 @@
 #include "types.h"
 #include "stat.h"
-#include "user.h"
 #include "param.h"
+#include "defs.h"
 #define PGSIZE 4096
 
 // Memory allocator by Kernighan and Ritchie,
@@ -47,15 +47,15 @@ kmfree(void *ap)
 static Header*
 morecore()
 {
-  char *p;
+  char* page;
   Header *hp;
 
-  p = kalloc();
-  if(p == (char*)0)
+  page = kalloc();
+  if(page == 0)
     return 0;
-  hp = (Header*)p;
-  hp->s.size = PGSIZE;
-  free((void*)(hp + 1));
+  hp = (Header*)page;
+  hp->s.size = PGSIZE / sizeof(Header);
+  kmfree((void*)(hp + 1));
   return freep;
 }
 
@@ -65,7 +65,8 @@ kmalloc(uint nbytes)
   Header *p, *prevp;
   uint nunits;
 
-  if(nunits > PGSIZE){
+
+  if(nbytes > PGSIZE){
     panic("kmalloc: can't allocate more than a page at a time");
   }
 
