@@ -110,29 +110,29 @@ int sys_kmfree(void){
 }
 
 int sys_mmap(void){
-  int length, prot, flags, fd, offset;
-  void* addr;
+  int length, prot, flags, fd, offset, addr;
+  // void* addr;
 
-  if((argptr(0, (void*)&addr, sizeof(void*))) < 0)
+  // if((argptr(0, (void*)&addr, sizeof(void*))) < 0)
+  //   return -1;
+
+  if(argint(0, &addr) < 0 || argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argint(4, &fd) < 0 || argint(5, &offset) < 0)
     return -1;
 
-  if(argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argint(4, &fd) < 0 || argint(5, &offset) < 0)
-    return -1;
-
-  mmap((void*)addr, length, prot, flags, fd, offset);
-  return 0;
+  return (int)mmap((void*)addr, length, prot, flags, fd, offset);
+  // return 0;
 }
 
 int sys_munmap(void){
-  int length;
-  void* addr;
+  int length, addr;
+  // void* addr;
 
-  if((argptr(0, (void*)&addr, sizeof(void*))) < 0)
-    return -1;
+  // if((argptr(0, (void*)&addr, sizeof(void*))) < 0)
+  //   return -1;
 
-  if(argint(1, &length) < 0)
+  if(argint(0, &addr) < 0 || argint(1, &length) < 0)
     return -1;
   
-  munmap((void*)addr, length);
-  return 0;
+  return (int)munmap((void*)addr, length);
+  // return 0;
 }
