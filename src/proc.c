@@ -533,14 +533,61 @@ procdump(void)
   }
 }
 
+/*
+still need to check the data types going into and out of each part of mmap - 
+becareful of how you are casting and make sure you understand what e ach cast is doing
+
+
+then focus on linked list implamentation
+srat with mmap and add the head node 
+*/
 void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
+  struct proc *curproc = myproc();
+  void *return_addr;
+  int a;
+  pte_t *current_page, *closest_page = 0;
+
+  if(length < 1){ // you can't map nothing
+    return -1;
+  }
+
+  if(addr != 0 && addr < curproc->sz){ // checks to see that the address is not null and is in current address space
+    // look for nearest free address
+    for(a = 0; a< curproc->sz; a+=PGSIZE){
+      current_page = walkpgdir(curproc->pgdir, a, 0); 
+      // check to see if page is free
+      if(current_page){// something is already there
+        continue;
+      } else { //address is empty? how close is it
+        if(closest_page == 0 || (uint)((int)addr - (int)closest_page) > (uint)((int)addr - (int)current_page)){// something here to check if closer than closest
+          closest_page = current_page;
+        }
+      }
+    }
+    // allocates user vm
+    return_addr = allocuvm(curproc->pgdir, closest_page, closest_page+length); 
+  } else { // the addr passed in is null or was outside of surrent address space
+    return_addr = allocuvm(curproc->pgdir, curproc->sz, curproc->sz+length);
+  }
+
+  //add allocate memory for node data
+  kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
+
+  //link list - add 
+
+
   return addr;
 }
 
 int munmap(void* addr, uint length){
-  return (int)length;
+  struct proc *curproc = myproc();
+  void *node_addr;
+
+  // traverse ll to see if add and len inthere
+  memset(addr, 0, length); /// sets it all to zero
+  deallocuvm(curproc->pgdir, addr, addr+length);
+  kmfree(node_addr);
+  // remove ll node and reset pointer
+
+  return 0;
 }
-
-
-//// Beginning of kmallloc implementation
-
