@@ -112,6 +112,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // add init of mmap num here - hr
+
   return p;
 }
 
@@ -123,7 +125,7 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
-  p = allocproc();
+p = allocproc();  
   
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
@@ -559,6 +561,8 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   int a;
   pte_t current_page, closest_page = 0;
 
+  cprintf("we have reached mmap!\n");
+
   if(length < 1){ // you can't map nothing
     return (void*)-1;
   }
@@ -567,19 +571,25 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     // look for nearest free address
     for(a = 0; a< curproc->sz; a+=PGSIZE){
       current_page =(uint) walkpgdir(curproc->pgdir, (void*) a, 0); 
-      // check to see if page is free
+      // check to see if page is free;
       if(current_page){// something is already there
         continue;
       } else { //address is empty? how close is it
+
+      ///test for size here
         if(closest_page == 0 || (uint)((int)addr - (int)closest_page) > (uint)((int)addr - (int)current_page)){// something here to check if closer than closest
           closest_page = current_page;
         }
       }
     }
+
     // allocates user vm
     return_addr = (void*)allocuvm(curproc->pgdir, (uint)closest_page, (uint)closest_page+length); 
+    memset((void*)closest_page, 0, length);
   } else { // the addr passed in is null or was outside of surrent address space
     return_addr = (void*)allocuvm(curproc->pgdir, curproc->sz, curproc->sz+length);
+    curproc->sz += length;
+    memset((void*)curproc->sz, 0, length);
   }
 
   //add allocate memory for node data
@@ -624,11 +634,13 @@ int munmap(void* addr, uint length){
   mmap_node *node_hit = 0; // just to get it to compile
   mmap_node *tnode;
 
+  cprintf("we have reached munmap!\n");
+
   if(curproc->num_mmap == 0){/// ya can't unmap what hasn't been mapped
     return -1;
   }
 
-  // traverse ll to see if add and len inthere
+  // traverse ll to see if add and len inthere /// be safe with linked list  don't free until
   if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
     curproc->first_node = curproc->first_node->next_node;
     kmfree(node_hit);
