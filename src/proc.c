@@ -536,7 +536,8 @@ procdump(void)
 /*
 still need to check the data types going into and out of each part of mmap - 
 becareful of how you are casting and make sure you understand what e ach cast is doing
-
+also not that the error walkpgdir is throwing
+implict delclartion? whay alll the other vm.c stuff is avaible
 
 then focus on linked list implamentation
 srat with mmap and add the head node 
@@ -545,16 +546,16 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   struct proc *curproc = myproc();
   void *return_addr;
   int a;
-  pte_t *current_page, *closest_page = 0;
+  pte_t current_page, closest_page = 0;
 
   if(length < 1){ // you can't map nothing
-    return -1;
+    return (void*)-1;
   }
 
-  if(addr != 0 && addr < curproc->sz){ // checks to see that the address is not null and is in current address space
+  if((uint)addr != 0 && (uint)addr < curproc->sz){ // checks to see that the address is not null and is in current address space
     // look for nearest free address
     for(a = 0; a< curproc->sz; a+=PGSIZE){
-      current_page = walkpgdir(curproc->pgdir, a, 0); 
+      current_page =(uint) walkpgdir(curproc->pgdir, (void*) a, 0); 
       // check to see if page is free
       if(current_page){// something is already there
         continue;
@@ -565,9 +566,9 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       }
     }
     // allocates user vm
-    return_addr = allocuvm(curproc->pgdir, closest_page, closest_page+length); 
+    return_addr = (void*)allocuvm(curproc->pgdir, (uint)closest_page, (uint)closest_page+length); 
   } else { // the addr passed in is null or was outside of surrent address space
-    return_addr = allocuvm(curproc->pgdir, curproc->sz, curproc->sz+length);
+    return_addr = (void*)allocuvm(curproc->pgdir, curproc->sz, curproc->sz+length);
   }
 
   //add allocate memory for node data
@@ -576,16 +577,16 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   //link list - add 
 
 
-  return addr;
+  return return_addr;
 }
 
 int munmap(void* addr, uint length){
   struct proc *curproc = myproc();
-  void *node_addr;
+  void *node_addr = 0; // just to get it to compile
 
   // traverse ll to see if add and len inthere
   memset(addr, 0, length); /// sets it all to zero
-  deallocuvm(curproc->pgdir, addr, addr+length);
+  deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
   kmfree(node_addr);
   // remove ll node and reset pointer
 
