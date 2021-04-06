@@ -621,13 +621,37 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
 int munmap(void* addr, uint length){
   struct proc *curproc = myproc();
-  void *node_addr = 0; // just to get it to compile
+  mmap_node *node_hit = 0; // just to get it to compile
+  mmap_node *tnode;
+
+  if(curproc->num_mmap == 0){/// ya can't unmap what hasn't been mapped
+    return -1;
+  }
 
   // traverse ll to see if add and len inthere
-  memset(addr, 0, length); /// sets it all to zero
-  deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
-  kmfree(node_addr);
-  // remove ll node and reset pointer
+  if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
+    curproc->first_node = curproc->first_node->next_node;
+    kmfree(node_hit);
+    memset(addr, 0, length); /// sets it all to zero
+    deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
+    return 0;
+  }
+
+  for(tnode = curproc->first_node; tnode->next_node == 0;  tnode = tnode->next_node){
+    if (tnode->next_node->addr == addr && tnode->next_node->legth == length){ // got a hit
+      node_hit = tnode->next_node;
+      tnode->next_node = node_hit->next_node; // no longer points to node addr
+
+      kmfree(node_hit);
+      memset(addr, 0, length); /// sets it all to zero
+      deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
+      return 0;
+      break;
+    }
+    if(tnode->next_node == 0){ // we reached the last node with no hits
+      return -1;
+    }
+  }
 
   return 0;
 }
