@@ -130,6 +130,7 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->num_mmap = 0;//hr-initialing number of mmap request
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -532,6 +533,16 @@ procdump(void)
     cprintf("\n");
   }
 }
+// helper functions for linked list
+void ll_add_node(){
+  struct proc *curproc = myproc();
+
+  if(curproc->num_mmap == 0){// set first node
+
+  } else {
+
+  }
+}
 
 /*
 still need to check the data types going into and out of each part of mmap - 
@@ -572,10 +583,38 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   }
 
   //add allocate memory for node data
-  kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
 
-  //link list - add 
+  mmap_node *p = (mmap_node*)kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
 
+  //add data to node
+  p->addr = return_addr;
+  p->legth = length;
+
+
+  // adding data to the linked list
+  if(curproc->num_mmap == 0){ // firist time mmap has been called fo rthis proccesss
+    curproc->first_node = p;
+    p->next_node = 0;
+  } else if (curproc->first_node->addr > return_addr) { /// has the lowest address so needs be add at beginning
+    p->next_node = curproc->first_node;
+    curproc->first_node = p;
+  } else {  
+    mmap_node *prev_node = curproc->first_node, *tnode;
+    for(tnode = curproc->first_node->next_node; ; tnode = tnode->next_node){
+      if(tnode->addr > return_addr){
+        p->next_node = tnode;
+        prev_node->next_node = p;
+        break;
+      } else if (tnode->next_node == 0){
+        tnode->next_node = p;
+        p->next_node = 0;
+        break;
+      }
+      prev_node = tnode;
+    }
+  }
+
+  curproc->num_mmap += 1;
 
   return return_addr;
 }
