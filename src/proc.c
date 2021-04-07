@@ -569,9 +569,11 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
   if((uint)addr != 0 && (uint)addr < curproc->sz){ // checks to see that the address is not null and is in current address space
     // look for nearest free address
+    // cprintf("adress is not null!\n");
     for(a = 0; a< curproc->sz; a+=PGSIZE){
       current_page =(uint) walkpgdir(curproc->pgdir, (void*) a, 0); 
       // check to see if page is free;
+
       if(current_page){// something is already there
         continue;
       } else { //address is empty? how close is it
@@ -583,19 +585,28 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
       }
     }
-
+    // cprintf("we are just before the allocate\n");
     // allocates user vm
-    return_addr = (void*)allocuvm(curproc->pgdir, (uint)closest_page, (uint)closest_page+length); 
+    if (allocuvm(curproc->pgdir, (uint)closest_page, (uint)closest_page+length) == 0){
+      return (void*)-1;
+    } 
     memset((void*)closest_page, 0, length);
+    return_addr = (void*)closest_page;
+    // cprintf("we are just after the allocate %d\n", closest_page);
   } else { // the addr passed in is null or was outside of surrent address space
-    return_addr = (void*)allocuvm(curproc->pgdir, curproc->sz, curproc->sz+length);
+    // cprintf("the addres is at the bottom\n");
+    if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
+      cprintf("out o memory \n");
+    }
+    // cprintf("we are just after the allocate %d\n", closest_page);
     memset((void*)curproc->sz, 0, length);
     return_addr = (void*)curproc->sz;
-    curproc->sz += length;
+    curproc->sz += PGROUNDUP(length);
     
   }
 
   //add allocate memory for node data
+  // cprintf("Its a node issue\n");
 
   mmap_node *p = (mmap_node*)kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
 
@@ -612,6 +623,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     p->next_node = curproc->first_node;
     curproc->first_node = p;
   } else {  
+    cprintf("Get your ll right");
     mmap_node *prev_node = curproc->first_node, *tnode;
     for(tnode = curproc->first_node->next_node; ; tnode = tnode->next_node){
       if(tnode->addr > return_addr){
@@ -639,7 +651,7 @@ int munmap(void* addr, uint length){
 
   // cprintf("we have reached munmap!\n");
 
-  if(curproc->num_mmap == 0){/// ya can't unmap what hasn't been mapped
+  if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
     return -1;
   }
 
