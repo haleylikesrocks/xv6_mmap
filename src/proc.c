@@ -606,9 +606,12 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   }
 
   //add allocate memory for node data
-  // cprintf("Its a node issue\n");
+  // cprintf("Its a kmalloc issue\n");
+  // cprintf("input is %d\n", sizeof(mmap_node));
 
-  mmap_node *p = (mmap_node*)kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
+  mmap_node *p = kmalloc(2000); ///need to cast return adddress to next node pointer
+
+  // cprintf("Its a node issue\n");
 
   //add data to node
   p->addr = return_addr;
@@ -617,13 +620,16 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
   // adding data to the linked list
   if(curproc->num_mmap == 0){ // firist time mmap has been called fo rthis proccesss
+    // cprintf ("the number of mmaps is %d\n", curproc->num_mmap);
     curproc->first_node = p;
     p->next_node = 0;
   } else if (curproc->first_node->addr > return_addr) { /// has the lowest address so needs be add at beginning
+    // cprintf ("the number of mmaps is %d\n", curproc->num_mmap);
     p->next_node = curproc->first_node;
     curproc->first_node = p;
   } else {  
-    cprintf("Get your ll right");
+    // cprintf("Get your ll right\n");
+    // cprintf ("the number of mmaps is %d\n", curproc->num_mmap);
     mmap_node *prev_node = curproc->first_node, *tnode;
     for(tnode = curproc->first_node->next_node; ; tnode = tnode->next_node){
       if(tnode->addr > return_addr){
@@ -646,8 +652,9 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
 int munmap(void* addr, uint length){
   struct proc *curproc = myproc();
-  mmap_node *node_hit = 0; // just to get it to compile
-  mmap_node *tnode;
+  mmap_node *prev = curproc->first_node; 
+  // mmap_node *next = curproc->first_node->next_node;
+  mmap_node * node_hit;
 
   // cprintf("we have reached munmap!\n");
 
@@ -657,25 +664,26 @@ int munmap(void* addr, uint length){
 
   // traverse ll to see if add and len inthere /// be safe with linked list  don't free until
   if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
+    node_hit = curproc->first_node;
     curproc->first_node = curproc->first_node->next_node;
     kmfree(node_hit);
     memset(addr, 0, length); /// sets it all to zero
-    deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
+    curproc->sz = deallocuvm(curproc->pgdir, curproc->sz, curproc->sz - length);
     return 0;
   }
 
-  for(tnode = curproc->first_node; tnode->next_node == 0;  tnode = tnode->next_node){
-    if (tnode->next_node->addr == addr && tnode->next_node->legth == length){ // got a hit
-      node_hit = tnode->next_node;
-      tnode->next_node = node_hit->next_node; // no longer points to node addr
+  for(prev = curproc->first_node; prev->next_node == 0;  prev = prev->next_node){
+    if (prev->next_node->addr == addr && prev->next_node->legth == length){ // got a hit
+      node_hit = prev->next_node; 
+      prev->next_node = node_hit->next_node; // prev node no longer points to node hit
 
       kmfree(node_hit);
       memset(addr, 0, length); /// sets it all to zero
-      deallocuvm(curproc->pgdir, (uint)addr, (uint)addr+length);
+      curproc->sz = deallocuvm(curproc->pgdir, curproc->sz, curproc->sz - length);
       return 0;
       break;
     }
-    if(tnode->next_node == 0){ // we reached the last node with no hits
+    if(prev->next_node == 0){ // we reached the last node with no hits
       return -1;
     }
   }
