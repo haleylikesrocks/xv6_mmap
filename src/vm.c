@@ -263,7 +263,9 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
+    // cprintf("think this is the problem here\n");
     pte = walkpgdir(pgdir, (char*)a, 0);
+    // cprintf("which is why we don't make it here\n");
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){

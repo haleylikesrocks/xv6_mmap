@@ -1,3 +1,0 @@
-XV6_TEST_OUTPUT : rem1 = 0 rem2 = 0 rem3 = 0
-XV6_TEST_OUTPUT : mmap good --> address returned is page aligned
-XV6_TEST_OUTPUT : munmap good

@@ -92,7 +92,6 @@ kmalloc(uint nbytes)
         // cprintf("2 here p->s.size %d  \n", p->s.size);
         // cprintf("2 here nunits %d  \n", nunits);
         // cprintf("2 here p %p  \n", p);
-        // p += nunits;
         p += p->s.size;
         // cprintf("before step 3\n"); 
         // cprintf("3 here p->s.size %d  \n", p->s.size);

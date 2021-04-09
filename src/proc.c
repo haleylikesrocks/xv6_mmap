@@ -567,6 +567,8 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     return (void*)-1;
   }
 
+  length = PGROUNDUP(length);
+
   if((uint)addr != 0 && (uint)addr < curproc->sz){ // checks to see that the address is not null and is in current address space
     // look for nearest free address
     // cprintf("adress is not null!\n");
@@ -601,7 +603,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     // cprintf("we are just after the allocate %d\n", closest_page);
     memset((void*)curproc->sz, 0, length);
     return_addr = (void*)curproc->sz;
-    curproc->sz += PGROUNDUP(length);
+    curproc->sz += length;
     
   }
 
@@ -609,7 +611,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   // cprintf("Its a kmalloc issue\n");
   // cprintf("input is %d\n", sizeof(mmap_node));
 
-  mmap_node *p = kmalloc(2000); ///need to cast return adddress to next node pointer
+  mmap_node *p = kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
 
   // cprintf("Its a node issue\n");
 
@@ -655,6 +657,7 @@ int munmap(void* addr, uint length){
   mmap_node *prev = curproc->first_node; 
   // mmap_node *next = curproc->first_node->next_node;
   mmap_node * node_hit;
+  length = PGROUNDUP(length);
 
   // cprintf("we have reached munmap!\n");
 
@@ -666,8 +669,10 @@ int munmap(void* addr, uint length){
   if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
     node_hit = curproc->first_node;
     curproc->first_node = curproc->first_node->next_node;
+
     kmfree(node_hit);
     memset(addr, 0, length); /// sets it all to zero
+    //round up length pg size
     curproc->sz = deallocuvm(curproc->pgdir, curproc->sz, curproc->sz - length);
     return 0;
   }
