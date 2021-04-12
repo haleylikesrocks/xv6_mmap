@@ -587,7 +587,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
       }
     }
-    // cprintf("we are just before the allocate\n");
+    cprintf("we are just before the allocate\n");
     // allocates user vm
     if (allocuvm(curproc->pgdir, (uint)closest_page, (uint)closest_page+length) == 0){
       return (void*)-1;
@@ -655,14 +655,15 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 int munmap(void* addr, uint length){
   struct proc *curproc = myproc();
   mmap_node *prev = curproc->first_node; 
-  // mmap_node *next = curproc->first_node->next_node;
   mmap_node * node_hit;
   length = PGROUNDUP(length);
 
-  // cprintf("we have reached munmap!\n");
-
   if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
     return -1;
+  }
+
+  if ((int)addr % 4096 != 0){
+    panic("ahhhhh un map");
   }
 
   // traverse ll to see if add and len inthere /// be safe with linked list  don't free until
@@ -670,10 +671,17 @@ int munmap(void* addr, uint length){
     node_hit = curproc->first_node;
     curproc->first_node = curproc->first_node->next_node;
 
+    cprintf("pre mem?\n");
+    memset(addr, 0, length);
+    cprintf("pre km\n");
     kmfree(node_hit);
-    memset(addr, 0, length); /// sets it all to zero
+     /// sets it all to zero
+    cprintf("pre alloc\n");
     //round up length pg size
-    curproc->sz = deallocuvm(curproc->pgdir, curproc->sz, curproc->sz - length);
+    // curproc->sz = 
+    deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+    curproc->num_mmap--;
+    cprintf("post alloc\n");
     return 0;
   }
 
@@ -682,9 +690,14 @@ int munmap(void* addr, uint length){
       node_hit = prev->next_node; 
       prev->next_node = node_hit->next_node; // prev node no longer points to node hit
 
+      cprintf("before mem? this is the address \n");
+      memset(addr, 0, PGSIZE); // sets it all to zero
+      cprintf("before km?\n");
       kmfree(node_hit);
-      memset(addr, 0, length); /// sets it all to zero
-      curproc->sz = deallocuvm(curproc->pgdir, curproc->sz, curproc->sz - length);
+      cprintf("before alloc?\n");
+      // address make
+      // curproc->sz = 
+      deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
       return 0;
       break;
     }
