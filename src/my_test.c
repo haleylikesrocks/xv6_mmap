@@ -8,7 +8,25 @@
 #include "traps.h"
 #include "memlayout.h"
 
-/*Stress test : Testing modification to anonymous memory mapped by mmap in a loop.*/
+/* Test modification to memory mapped by mmap.*/
+int
+memcmp(const void *v1, const void *v2, uint n)
+{
+  const uchar *s1, *s2;
+  
+  s1 = v1;
+  s2 = v2;
+  while(n-- > 0)
+  {
+    if(*s1 != *s2)
+     return *s1 - *s2;
+
+    s1++, s2++;
+  }
+
+  return 0;
+}
+
 void test() {
   int size =  10;  /* we need 10 bytes */
  
@@ -21,9 +39,14 @@ void test() {
     return;
   }
 
+  printf(1, "XV6_TEST_OUTPUT : mmap good\n");
+
+  printf(1, "XV6_TEST_OUTPUT : Strlen Before modification: %d\n", strlen((char*)str));
+
   strcpy(str, "012345");
 
   printf(1, "XV6_TEST_OUTPUT : str = %s\n", (char*)str);
+  printf(1, "XV6_TEST_OUTPUT : Strlen After modification: %d\n", strlen((char*)str));
 
   int rv = munmap(str, size);
   if (rv < 0) {
@@ -31,18 +54,13 @@ void test() {
     return;
   }
 
+  printf(1, "XV6_TEST_OUTPUT : munmap good\n");
   return;
 }
 
 int
 main(int argc, char *argv[])
 {
-  int i;
-
-  for(i=1;i<=100;i++)
-  {
-    test();
-  }
-  
+  test();
   exit();
 }
