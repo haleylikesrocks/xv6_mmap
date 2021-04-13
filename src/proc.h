@@ -63,6 +63,8 @@ struct proc {
   char name[16];               // Process name (debugging)
   mmap_node* first_node;       // fist node in mmap linked list
   int num_mmap;                // number of mmapped blocks
+  mmap_node* free_mmap;        // freed up mmap regions
+  int num_free;                // number of freed regions
 };
 
 // Process memory is laid out contiguously, low addresses first:

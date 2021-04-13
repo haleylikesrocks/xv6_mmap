@@ -555,6 +555,18 @@ implict delclartion? whay alll the other vm.c stuff is avaible
 then focus on linked list implamentation
 srat with mmap and add the head node 
 */
+void
+clearptep(pde_t *pgdir, char *uva)
+{
+  pte_t *pte;
+
+  pte = walkpgdir(pgdir, uva, 0);
+  if(pte == 0)
+    panic("clearptep");
+  *pte &= ~PTE_P;
+}
+
+
 void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   struct proc *curproc = myproc();
   void *return_addr;
@@ -680,6 +692,7 @@ int munmap(void* addr, uint length){
     //round up length pg size
     // curproc->sz = 
     deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+    clearptep(curproc->pgdir, node_hit->addr);
     curproc->num_mmap--;
     cprintf("post alloc\n");
     return 0;
@@ -698,6 +711,7 @@ int munmap(void* addr, uint length){
       // address make
       // curproc->sz = 
       deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+      clearptep(curproc->pgdir, node_hit->addr);
       return 0;
       break;
     }
