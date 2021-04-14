@@ -26,6 +26,8 @@ main(int argc, char *argv[])
   printf(1, "pointer r1 is the address %p\n", r1);
   printf(1, "pointer r2 is the address %p\n", r2);
   printf(1, "pointer r3 is the address %p\n", r3);
+  printf(1, "pointer r4 is the address %p\n", r4);
+  printf(1, "pointer r5 is the address %p\n", r5);
 
   int rv2 = munmap(r2, size);
   if (rv2 < 0) {
@@ -33,19 +35,17 @@ main(int argc, char *argv[])
     exit();
   }
 
-  int rv4 = munmap(r4, size);
+  int rv4 = munmap(r4, 4000);
   if (rv4 < 0) {
     printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
     exit();
   }
   
-  printf(1, "XV6_TEST_OUTPUT : munmap good\n");
+  printf(1, "XV6_TEST_OUTPUT : r2 and r4 munmap good\n");
 
-  char *r6 = mmap((void*)12000, 4000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
+  char *r6 = mmap((void*)6000, 4000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
   printf(1, "pointer r6 is the address %p\n", r6);
   char *r7 = mmap(0, 4000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
-
-  printf(1, "pointer r5 is the address %p\n", r5);
   printf(1, "pointer r7 is the address %p\n", r7);
 
   int rv6 = munmap(r6, 4000);

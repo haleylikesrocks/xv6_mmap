@@ -542,7 +542,7 @@ procdump(void)
   }
 }
 
-// hr mmap starts here
+// hr mmap and munmap starts here
 
 void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   struct proc *curproc = myproc();
@@ -550,32 +550,30 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   int distance;
   mmap_node *free_space=0, *prev_free =0, *closest_node=0, *prev_closest =0;
 
-  // cprintf("we have reached mmap!\n");
-
   if(length < 1){ // you can't map nothing
     return (void*)-1;
   }
   
   length = PGROUNDUP(length);
   distance = curproc->sz - (uint)addr;
-
+  
+  // look for large enough mmap allocte space
   if(curproc->num_free > 0){
-    // look for large enough mmap allocte space
-    free_space = curproc->free_mmap;
-
+    free_space = curproc->free_mmap; 
     while(1){
       if(free_space == 0){ // no list or end of list
         break;
       }
       if(free_space->legth >= length){ // the space is large enough
         // cprintf("we have found a large enough space \n");
-        // cprintf("the distance bweeten teh adresses is %d\n", free_space->addr - addr);
-        // cprintf("the free space adress is %p\n", free_space->addr);
+        cprintf("the distance bweeten the adresses is %d\n", free_space->addr - addr);
+        cprintf("the free space adress is %p\n", free_space->addr);
         if (distance > free_space->addr - addr){ // check if closest address space
           closest_addr = free_space->addr;
           closest_node = free_space;
           prev_closest = prev_free;
-          // cprintf("the closest adress is %p\n", closest_addr);
+          distance = free_space->addr - addr;
+          cprintf("the closest adress is %p\n", closest_addr);
         }
       }
       // moving to next location in free list
