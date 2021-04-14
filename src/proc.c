@@ -637,12 +637,14 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       if(closest_node->legth == length){
         prev_closest->next_node = closest_node->next_node;
         allocuvm(curproc->pgdir, (uint)closest_addr, length);
+        lcr3(V2P(curproc->pgdir));
         curproc->num_free -= 1;
         kmfree(closest_node);
       } else {
         prev_closest->next_node->addr = closest_addr + length; //fix pointers
         prev_closest->next_node->legth -= length; //shrink free size
         allocuvm(curproc->pgdir, (uint)closest_addr, length);
+        lcr3(V2P(curproc->pgdir));
         curproc->num_free -= 1;
       }
       // cprintf("the closest address is now %d \n ", (uint)closest_addr);
@@ -653,7 +655,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     // cprintf("we never get here \n");
     // just allocate from bottom of the stack
     if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
-      // cprintf("out o memory \n");
+      cprintf("out o memory \n");
     }
     memset((void*)curproc->sz, 0, length);
     return_addr = (void*)curproc->sz;
@@ -730,6 +732,7 @@ int munmap(void* addr, uint length){
     //round up length pg size
     // curproc->sz = 
     deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+    lcr3(V2P(curproc->pgdir));
     // clearptep(curproc->pgdir, node_hit->addr);
     curproc->num_mmap--;
     // cprintf("post alloc\n");
@@ -744,6 +747,7 @@ int munmap(void* addr, uint length){
       memset(addr, 0, PGSIZE); // sets it all to zero
       kmfree(node_hit);
       deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+      lcr3(V2P(curproc->pgdir));
       return 0;
       break;
     }
