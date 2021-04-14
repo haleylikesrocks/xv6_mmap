@@ -43,7 +43,7 @@ main(int argc, char *argv[])
   
   printf(1, "XV6_TEST_OUTPUT : r2 and r4 munmap good\n");
 
-  char *r6 = mmap((void*)6000, 4000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
+  char *r6 = mmap((void*)6000, 12000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
   printf(1, "pointer r6 is the address %p\n", r6);
   char *r7 = mmap(0, 4000, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
   printf(1, "pointer r7 is the address %p\n", r7);

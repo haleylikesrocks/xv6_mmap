@@ -566,43 +566,42 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       }
       if(free_space->legth >= length){ // the space is large enough
         // cprintf("we have found a large enough space \n");
-        cprintf("the distance bweeten the adresses is %d\n", free_space->addr - addr);
-        cprintf("the free space adress is %p\n", free_space->addr);
         if (distance > free_space->addr - addr){ // check if closest address space
           closest_addr = free_space->addr;
           closest_node = free_space;
           prev_closest = prev_free;
           distance = free_space->addr - addr;
-          cprintf("the closest adress is %p\n", closest_addr);
         }
       }
       // moving to next location in free list
       prev_free = free_space; 
       free_space =free_space->next_node;
     }
-
+    // cprintf("now that we have finished itterating:the closest adress is %p\n", closest_addr);
       if(closest_node->legth == length){
-        prev_closest->next_node = closest_node->next_node;
-        // cprintf("1 we would like to allocate %d length at the adress space %p\n", length, closest_addr);
-        allocuvm(curproc->pgdir, (uint)closest_addr, length);
-        lcr3(V2P(curproc->pgdir));
-        curproc->num_free -= 1;
-        kmfree(closest_node);
+        if(prev_closest == 0){ // mapping into the first free space
+          curproc->free_mmap= curproc->free_mmap->next_node;
+          curproc->num_free -= 1;
+        } else{
+          prev_closest->next_node = closest_node->next_node;
+          allocuvm(curproc->pgdir, (uint)closest_addr, length);
+          lcr3(V2P(curproc->pgdir));
+          curproc->num_free -= 1;
+          kmfree(closest_node);
+        }
       } else {
-        // cprintf("the curent number of un maped regions is %d\n", curproc->num_free);
-        // cprintf("\n");
-        prev_closest->next_node->addr = closest_addr + length; //fix pointers
-        prev_closest->next_node->legth -= length; //shrink free size
-        // cprintf("2 we would like to allocate %d length at the adress space %p\n", length, closest_addr);
-        allocuvm(curproc->pgdir, (uint)closest_addr, length);
-        lcr3(V2P(curproc->pgdir));
-        curproc->num_free -= 1;
-      }
-      // cprintf("the closest address is now %d \n ", (uint)closest_addr); 
+        if(prev_closest == 0){
+          curproc->free_mmap->addr += length;
+          curproc->free_mmap->legth -= length;
+        } else{
+          prev_closest->next_node->addr = closest_addr + length; //fix pointers
+          prev_closest->next_node->legth -= length; //shrink free size
+          allocuvm(curproc->pgdir, (uint)closest_addr, length);
+          lcr3(V2P(curproc->pgdir));
+        }
+      } 
     return_addr = (void*)closest_addr;
-    // cprintf("the return address is now %d \n ", (uint)return_addr);
   } else{
-    // cprintf("we never get here \n");
     // just allocate from bottom of the stack
     if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
       cprintf("out o memory \n");
