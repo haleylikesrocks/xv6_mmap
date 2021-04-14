@@ -7,60 +7,57 @@
 #include "syscall.h"
 #include "traps.h"
 #include "memlayout.h"
+#include "mmu.h"
 
-/* Test modification to memory mapped by mmap.*/
-int
-memcmp(const void *v1, const void *v2, uint n)
-{
-  const uchar *s1, *s2;
-  
-  s1 = v1;
-  s2 = v2;
-  while(n-- > 0)
-  {
-    if(*s1 != *s2)
-     return *s1 - *s2;
 
-    s1++, s2++;
-  }
-
-  return 0;
-}
-
-void test() {
-  int size =  10;  /* we need 10 bytes */
- 
-  char *addr = (char*)0x4000;
-  char* str = mmap(addr, size,  0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
-
-  if (str<=0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : mmap failed\n");
-    return;
-  }
-
-  printf(1, "XV6_TEST_OUTPUT : mmap good\n");
-
-  printf(1, "XV6_TEST_OUTPUT : Strlen Before modification: %d\n", strlen((char*)str));
-
-  strcpy(str, "012345");
-
-  printf(1, "XV6_TEST_OUTPUT : str = %s\n", (char*)str);
-  printf(1, "XV6_TEST_OUTPUT : Strlen After modification: %d\n", strlen((char*)str));
-
-  int rv = munmap(str, size);
-  if (rv < 0) {
-    printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
-    return;
-  }
-
-  printf(1, "XV6_TEST_OUTPUT : munmap good\n");
-  return;
-}
-
+/*Testing whether address returned by anonymous mmap is page aligned.*/
 int
 main(int argc, char *argv[])
 {
-  test();
+  int size = 200;
+  char *r1 = mmap(0, size, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
+
+  char *r2 = mmap(0, size, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
+  int rem1 = ((int)r1 % PGSIZE);
+  int rem2 = ((int)r2 % PGSIZE);
+  
+  fork();
+  char *r3 = mmap(0, size, 0/*prot*/, 0/*flags*/, -1/*fd*/, 0/*offset*/);
+
+  
+  int rem3 = ((int)r3 % PGSIZE);
+
+  printf(1, "XV6_TEST_OUTPUT : rem1 = %d rem2 = %d rem3 = %d\n",rem1,rem2,rem3);
+
+  if(rem1 != 0 || rem2 != 0 || rem3 != 0)
+  {
+    printf(1, "XV6_TEST_OUTPUT : Address returned by mmap should be page aligned\n");
+    exit();
+  }
+
+  printf(1, "XV6_TEST_OUTPUT : mmap good --> address returned is page aligned\n");
+
+ int rv3 = munmap(r3, size);
+  if (rv3 < 0) {
+    printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
+    exit();
+  }
+
+  wait();
+
+  int rv2 = munmap(r2, size);
+  if (rv2 < 0) {
+    printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
+    exit();
+  }
+
+  int rv1 = munmap(r1, size);
+  if (rv1 < 0) {
+    printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
+    exit();
+  }
+  
+  printf(1, "XV6_TEST_OUTPUT : munmap good\n");
+
   exit();
 }
