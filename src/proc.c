@@ -670,7 +670,9 @@ int munmap(void* addr, uint length){
   }
 
   // traverse ll to see if add and len inthere /// be safe with linked list  don't free until
+  // cprintf("the first node addr is %p and the addr passed in is %p\n", curproc->first_node->addr, addr);
   if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
+    // cprintf("1 we are here \n");
     node_hit = curproc->first_node;
     curproc->first_node = curproc->first_node->next_node;
 
@@ -681,23 +683,28 @@ int munmap(void* addr, uint length){
     curproc->num_mmap--;
     return 0;
   }
-
-  for(prev = curproc->first_node; prev->next_node == 0;  prev = prev->next_node){
+  prev = curproc->first_node;
+  int counter = curproc->num_mmap;
+  // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
+  while(counter > 0){
+    // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
     if (prev->next_node->addr == addr && prev->next_node->legth == length){ // got a hit
       node_hit = prev->next_node; 
       prev->next_node = node_hit->next_node; // prev node no longer points to node hit
 
-      memset(addr, 0, PGSIZE); // sets it all to zero
+      memset(addr, 0, length); // sets it all to zero
       kmfree(node_hit);
       deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
       lcr3(V2P(curproc->pgdir));
       curproc->num_mmap--;
-      return 0;
+      // return 0;
       break;
     }
-    if(prev->next_node == 0){ // we reached the last node with no hits
+    if((int)prev->next_node->addr % PGSIZE != 0){ // we reached the last node with no hits
       return -1;
     }
+    prev = prev->next_node;
+    counter --;
   }
 
   // add to free list

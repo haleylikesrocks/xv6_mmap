@@ -38,7 +38,7 @@ main(int argc, char *argv[])
   int rv4 = munmap(r4, 4000);
   if (rv4 < 0) {
     printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
-    exit();
+    // exit();
   }
   
   printf(1, "XV6_TEST_OUTPUT : r2 and r4 munmap good\n");
