@@ -565,6 +565,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   
   length = PGROUNDUP(length);
   distance = curproc->sz - (uint)addr;
+  int round_addr = PGROUNDUP((int)addr);
   
   // look for large enough mmap allocte space
   if(curproc->num_free > 0){
@@ -598,7 +599,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       if(prev_closest == 0){ // mapping into the first free space
         // cprintf("mapping into the first free space which is now:\n");
         curproc->free_mmap= curproc->free_mmap->next_node;
-        print_node(curproc->free_mmap);
+        // print_node(curproc->free_mmap);
       } else{ // mapping anywhere else
         // cprintf("not mapping into the first space\n");
         prev_closest->next_node = closest_node->next_node;
@@ -607,7 +608,21 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       curproc->num_free -= 1;
       // cprintf("finished putting it in the list\n");
     } else { // not a prefect fit
-      // cprintf("the size of the free space is larger than the needed area\n");
+      cprintf("the rounded address is %p\n", (void*)round_addr);
+
+      // the exact location is avaible
+      if((uint)round_addr + length < (uint)closest_node->addr+closest_node->legth){
+        closest_addr = (void*)round_addr;
+        closest_node->next_node = (void*)round_addr+length;
+      } //else {
+      //   while ((uint)round_addr+length > (uint)closest_node->addr+closest_node->legth)
+      //   {
+      //     round_addr -= PGSIZE;
+      //   }
+      //   closest_addr = (void*)round_addr;
+      // }
+
+      // cprintf("the address we are mapping to is %p\n", closest_addr);
       if(prev_closest == 0){ // mapping into the first location
         // cprintf("mapping into the first free space which is now:\n");
         curproc->free_mmap->addr += length;
@@ -616,6 +631,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       } else{
         // cprintf("not mapping into the first free space sothe space beefore mapping\n");
         // print_node(prev_closest->next_node);
+
         prev_closest->next_node->addr = closest_addr + length; //fix pointers
         prev_closest->next_node->legth -= length; //shrink free size
         // cprintf("the space after mapping\n");
