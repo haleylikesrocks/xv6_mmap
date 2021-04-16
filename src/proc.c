@@ -748,10 +748,9 @@ int munmap(void* addr, uint length){
   r->legth = length;
 
   if(curproc->num_free == 0){ // incorperate the first node
-    // cprintf("we arehere\n");
     curproc->free_mmap = r;
     curproc->free_mmap->next_node = 0;
-    print_node(curproc->free_mmap);
+    // print_node(curproc->free_mmap);
     
   } else{
     previous = curproc->free_mmap;

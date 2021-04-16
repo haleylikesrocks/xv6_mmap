@@ -328,7 +328,7 @@ copyuvm(pde_t *pgdir, uint sz)
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)){
-      continue;
+      continue; // hr change
     }
       // panic("copyuvm: page not present");
     pa = PTE_ADDR(*pte);
