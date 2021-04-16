@@ -129,7 +129,6 @@ int             munmap(void*, uint);
 void*           kmalloc(uint);
 void            kmfree(void*);
 
-
 // swtch.S
 void            swtch(struct context**, struct context*);
 

@@ -65,7 +65,6 @@ kmalloc(uint nbytes)
   Header *p, *prevp;
   uint nunits;
 
-  // cprintf("enerting kmalloc \n");
   if(nbytes > PGSIZE){
     panic("kmalloc: can't allocate more than a page at a time");
   }
@@ -77,35 +76,18 @@ kmalloc(uint nbytes)
     base.s.size = 0;
   }
   for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
-    // cprintf("looking for space\n");
     if(p->s.size >= nunits){
-      
       if(p->s.size == nunits)
         prevp->s.ptr = p->s.ptr;
       else {
-        // cprintf("before step 1\n"); 
-        // cprintf("1 here p->s.size %d  \n", p->s.size);
-        // cprintf("1 here nunits %d  \n", nunits);
-        // cprintf("1 here p %p  \n", p);
         p->s.size -= nunits;
-        // cprintf("before step 2\n"); 
-        // cprintf("2 here p->s.size %d  \n", p->s.size);
-        // cprintf("2 here nunits %d  \n", nunits);
-        // cprintf("2 here p %p  \n", p);
         p += p->s.size;
-        // cprintf("before step 3\n"); 
-        // cprintf("3 here p->s.size %d  \n", p->s.size);
-        // cprintf("3 here nunits %d  \n", nunits);
-        // cprintf("3 here p %p  \n", p);
         p->s.size = nunits;
-        // cprintf("end of else");
       }
       freep = prevp;
-      // cprintf("leaving kmalloc\n");
       return (void*)(p + 1);
     }
     if(p == freep)
-    // cprintf("need more core\n");
       if((p = morecore()) == 0)
         return 0;
   }
