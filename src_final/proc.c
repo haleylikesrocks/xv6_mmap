@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "mman.h"
 
 struct {
   struct spinlock lock;
@@ -562,6 +563,18 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   if(length < 1){ // you can't map nothing
     return (void*)-1;
   }
+
+  if(flags == MAP_ANONYMOUS){
+    if(fd != -1){
+      return (void*) -1;
+    }
+
+  }
+  if(flags == MAP_FILE){
+    if(fd > -1){
+      
+    }
+  }
   
   length = PGROUNDUP(length);
   distance = curproc->sz - (uint)addr;
@@ -661,6 +674,9 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   //add data to node
   p->addr = return_addr;
   p->legth = length;
+  p->region_type = flags;
+  p->offset = offset;
+  p->fd = fd;
   // print_node(p);
   // adding data to the linked list
   if(curproc->num_mmap == 0){ // firist time mmap has been called fo rthis proccesss
