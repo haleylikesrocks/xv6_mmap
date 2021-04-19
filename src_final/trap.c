@@ -35,11 +35,20 @@ idtinit(void)
 void
 pagefault_handler(struct trapframe *tf)
 {
-  void* fault_addr = (void*)rcr2();
-  char *mem = kalloc();
-  mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U);
-  // check that the addreees is part of an mmapped region
-  //round addresss down and mappage
+  mmap_node * node_check = 0;
+  void* fault_addr = (void*)PGROUNDDOWN(rcr2());
+  node_check = myproc()->first_node;
+
+  while((int)node_check->addr % PGSIZE == 0){
+    // cprintf("the addr is %x and the addr + legth is %x an dthe fault addr is %x\n", node_check->addr,(node_check->addr + node_check->legth), fault_addr);
+    if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth)){
+      char *mem = kalloc();
+      mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U);
+      return;
+    }
+    node_check = node_check->next_node;
+  }
+  
 
   /* decoding stuff required */
   cprintf("============in pagefault_handler============\n");
@@ -47,6 +56,7 @@ pagefault_handler(struct trapframe *tf)
           "eip 0x%x addr 0x%x\n",
           myproc()->pid, myproc()->name, tf->trapno,
           tf->err, cpuid(), tf->eip, fault_addr);
+  myproc()->killed = 1;
   return;
 
 };
