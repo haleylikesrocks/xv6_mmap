@@ -731,8 +731,12 @@ int munmap(void* addr, uint length){
     prev = prev->next_node;
     counter --;
   }
+  pte_t *pte;
   if (node_hit != 0){
-    // memset(addr, 0, length);
+    if((pte = walkpgdir(curproc->pgdir, node_hit->addr, 0)) == 0){
+     memset(addr, 0, length); 
+    }
+    
     // deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
     // lcr3(V2P(curproc->pgdir));
     curproc->num_mmap--;

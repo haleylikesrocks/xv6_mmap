@@ -57,6 +57,7 @@ pagefault_handler(struct trapframe *tf)
           myproc()->pid, myproc()->name, tf->trapno,
           tf->err, cpuid(), tf->eip, fault_addr);
   myproc()->killed = 1;
+  panic("trap");
   return;
 
 };
