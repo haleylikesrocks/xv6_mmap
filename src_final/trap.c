@@ -35,7 +35,20 @@ idtinit(void)
 void
 pagefault_handler(struct trapframe *tf)
 {
-  /* data */
+  void* fault_addr = (void*)rcr2();
+  char *mem = kalloc();
+  mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U);
+  // check that the addreees is part of an mmapped region
+  //round addresss down and mappage
+
+  /* decoding stuff required */
+  cprintf("============in pagefault_handler============\n");
+  cprintf("pid %d %s: trap %d err %d on cpu %d "
+          "eip 0x%x addr 0x%x\n",
+          myproc()->pid, myproc()->name, tf->trapno,
+          tf->err, cpuid(), tf->eip, fault_addr);
+  return;
+
 };
 
 //PAGEBREAK: 41
