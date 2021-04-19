@@ -32,7 +32,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-pte_t *
+static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
@@ -263,9 +263,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
-    // cprintf("think this is the problem here\n");
     pte = walkpgdir(pgdir, (char*)a, 0);
-    // cprintf("which is why we don't make it here\n");
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){
@@ -327,10 +325,8 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P)){
-      continue; // hr change
-    }
-      // panic("copyuvm: page not present");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)

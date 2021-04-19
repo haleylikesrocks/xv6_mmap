@@ -34,18 +34,6 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-// linked list to keep track of mmaped areas
-typedef struct mmap_node{
-  struct mmap_node* next_node; //pointer to the next node
-
-  // data we need
-  void* addr;
-  int legth;
-  int region_type;
-  int offset;
-  int fd;
-} mmap_node;
-
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -61,10 +49,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  mmap_node* first_node;       // fist node in mmap linked list
-  int num_mmap;                // number of mmapped blocks
-  mmap_node* free_mmap;        // freed up mmap regions
-  int num_free;                // number of freed regions
 };
 
 // Process memory is laid out contiguously, low addresses first:

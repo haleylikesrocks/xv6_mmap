@@ -112,8 +112,6 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
-  // add init of mmap num here - hr
-
   return p;
 }
 
@@ -125,16 +123,13 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
-p = allocproc();  
+  p = allocproc();
   
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
-  p->num_mmap = 0;//hr-initialing number of mmap request
-  p->num_free = 0;
-  p->free_mmap = 0;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -204,10 +199,6 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  *np->free_mmap = *curproc->free_mmap; // hr - copy over everything for mmap
-  np->num_free = curproc->num_free;
-  np->num_mmap = curproc->num_mmap;
-  *np->first_node = *curproc->first_node;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -540,255 +531,4 @@ procdump(void)
     }
     cprintf("\n");
   }
-}
-
-// hr mmap and munmap starts here
-
-void print_node(mmap_node *node){
-  cprintf("the addresss of the node is %p \n", node->addr);
-  cprintf("the length of the node is %d\n", node->legth);
-  // cprintf("the next node's address is %p\n", node->next_node->addr);
-  return;
-}
-
-void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
-  struct proc *curproc = myproc();
-  void *return_addr =0, *closest_addr = 0;
-  int distance;
-  mmap_node *free_space=0, *prev_free =0, *closest_node=0, *prev_closest =0;
-
-  // cprintf("welcome to mmap\n");
-
-  if(length < 1){ // you can't map nothing
-    return (void*)-1;
-  }
-  
-  length = PGROUNDUP(length);
-  distance = curproc->sz - (uint)addr;
-  int round_addr = PGROUNDUP((int)addr);
-
-  /* this is where our search for the best location begins */
-  
-  // look for large enough mmap allocte space in the linked list 
-  // we'll call this the closest node
-  if(curproc->num_free > 0){
-    free_space = curproc->free_mmap;
-    
-    while(1){ // looking for closest free space
-      if((int)free_space->addr % PGSIZE != 0){ // no list or end of list
-        break;
-      }
-
-      if(free_space->legth >= length){ // the space is large enough
-        // cprintf("we have found a large enough space \n");
-        if (distance > free_space->addr - addr){ // check if closest address space
-          closest_addr = free_space->addr;
-          closest_node = free_space;
-          prev_closest = prev_free;
-          distance = free_space->addr - addr;
-        }
-      }
-      // moving to next location in free list
-      prev_free = free_space; 
-      free_space =free_space->next_node;
-    }
-    // cprintf("now that we have finished itterating:the closest node adress is %p\n", closest_addr);
-    if(closest_node->legth == length){ // prefect fit
-      if(prev_closest == 0){ // mapping into the first free space
-        curproc->free_mmap= curproc->free_mmap->next_node;
-      } else{ // mapping anywhere else
-        prev_closest->next_node = closest_node->next_node;
-      }
-      kmfree(closest_node);  // we can free the node because it is a perfect hit
-      curproc->num_free -= 1;
-    } else { // not a prefect fit
-      // look for the best location within the space : ie is the exact location is avaible
-      while(round_addr > (int)closest_node->addr ){
-        if((uint)round_addr + length < (uint)closest_node->addr+closest_node->legth){
-          // found the nearest address
-          closest_addr = (void*)round_addr;
-
-          //set up the next free node new address and size
-          mmap_node *new_next = kmalloc(sizeof(mmap_node));
-          new_next->next_node = closest_node->next_node;
-          closest_node->next_node = new_next;
-          // getting the pointers right
-          new_next->addr = (void*)round_addr+length; 
-          new_next->legth = closest_node->legth - ((round_addr - (int)closest_node->addr) +length);
-          closest_node->legth = round_addr - (int)closest_node->addr;
-          break;
-        } else{
-          round_addr -= PGSIZE;
-        } 
-      }
-      if(round_addr < (int)closest_node->addr){
-        closest_addr = closest_node->addr;
-        closest_node->addr += length;
-        closest_node->legth -= length;
-      }
-      if(prev_closest == 0){ // mapping into the first location
-        curproc->free_mmap = closest_node;
-      }
-      if (closest_node->legth == 0){ // mapped at the top of the free space
-        prev_closest->next_node = closest_node->next_node;
-        kmfree(closest_node);
-      }
-      if (closest_node->next_node->legth == 0){ // mapped at the bottom of the free space
-        closest_node->next_node = closest_node->next_node->next_node;
-        kmfree(closest_node->next_node);
-      }
-      // cprintf("the address we are mapping to is %p\n", closest_addr);
-    }
-
-    if(allocuvm(curproc->pgdir, (uint)closest_addr, (uint)closest_addr + length) == 0){
-      cprintf("out o memory \n");
-    }
-    lcr3(V2P(curproc->pgdir));
-
-    // print_node(closest_node);
-    return_addr = (void*)closest_addr;
-    } else{ // just allocate from bottom of the stack
-      if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
-        cprintf("out o memory \n");
-      }
-      return_addr = (void*)curproc->sz;
-      // cprintf("the return address is now %d \n ", (uint)return_addr);
-      curproc->sz += length;
-    }
-
-  //add allocate memory for node data
-  mmap_node *p = kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
-  //add data to node
-  p->addr = return_addr;
-  p->legth = length;
-  // print_node(p);
-  // adding data to the linked list
-  if(curproc->num_mmap == 0){ // firist time mmap has been called fo rthis proccesss
-    // cprintf ("the number of mmaps is %d\n", curproc->num_mmap);
-    curproc->first_node = p;
-    p->next_node = 0;
-  } else if (curproc->first_node->addr > return_addr) { /// has the lowest address so needs be add at beginning
-    p->next_node = curproc->first_node;
-    curproc->first_node = p;
-  } else {  
-    mmap_node *prev_node = curproc->first_node, *tnode;
-    for(tnode = curproc->first_node->next_node; ; tnode = tnode->next_node){
-      if(tnode->addr > return_addr){
-        p->next_node = tnode;
-        prev_node->next_node = p;
-        break;
-      } else if (tnode->next_node == 0){
-        tnode->next_node = p;
-        p->next_node = 0;
-        break;
-      }
-      prev_node = tnode;
-    }
-  }
-  curproc->num_mmap += 1;
-  // cprintf("the current number of mmap is %d\n", curproc->num_mmap);
-  // cprintf("the return address is now %p \n ", return_addr);
-  return return_addr;
-}
-
-int munmap(void* addr, uint length){
-  struct proc *curproc = myproc();
-  mmap_node *prev = curproc->first_node; 
-  mmap_node * node_hit = 0;
-  length = PGROUNDUP(length);
-
-  if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
-    return -1;
-  }
-
-  if ((int)addr % 4096 != 0){
-    panic("ahhhhh un map");
-  }
-
-  prev = curproc->first_node;
-  int counter = curproc->num_mmap;
-  // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
-  while(counter > 0){
-    // check to see if it is the first node
-    if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
-      node_hit = curproc->first_node;
-      if(counter > 1){
-        curproc->first_node = curproc->first_node->next_node;
-      } else {
-        curproc->first_node = 0;
-      }
-    break;
-    }
-    // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
-    if (prev->next_node->addr == addr && prev->next_node->legth == length){ // got a hit
-      node_hit = prev->next_node; 
-      prev->next_node = node_hit->next_node; // prev node no longer points to node hit
-      break;
-    }
-    if((int)prev->next_node->addr % PGSIZE != 0){ // we reached the last node with no hits
-      return -1;
-    }
-    prev = prev->next_node;
-    counter --;
-  }
-  if (node_hit != 0){
-    memset(addr, 0, length);
-    deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
-    lcr3(V2P(curproc->pgdir));
-    curproc->num_mmap--;
-    kmfree(node_hit);
-  }
-
-  // add to free list
-  mmap_node *next, *previous;
-  mmap_node *r = kmalloc(sizeof(mmap_node)); ///need to cast return adddress to next node pointer
-
-  //add data to node
-  r->addr = addr;
-  r->legth = length;
-
-  if(curproc->num_free == 0){ // incorperate the first node
-    curproc->free_mmap = r;
-    curproc->free_mmap->next_node = 0;
-    // print_node(curproc->free_mmap);
-    
-  } else{
-    previous = curproc->free_mmap;
-    while(1){
-      if(addr > previous->addr && (addr < previous->next_node->addr || previous->next_node == 0)){ // in between current and next or end of list
-        if(previous->addr + previous->legth == r->addr){
-          previous->legth += r->legth;
-          if(r->addr + r->legth == previous->next_node->addr){
-            previous->legth += previous->next_node->legth;
-            previous->next_node = previous->next_node->next_node;
-            break;
-          }
-          break;
-        } 
-        else if (r->addr + r->legth == previous->next_node->addr){
-          r->legth += previous->next_node-> legth;
-          r->next_node = previous->next_node->next_node;
-          previous->next_node = r;
-          break;
-        } else{
-          next = previous->next_node;
-          previous->next_node = r;
-          r->next_node = next;
-          break;
-        }
-      }
-
-      if(previous->next_node == 0){
-        previous->next_node = r;
-        r->next_node =0;
-        break;
-      }
-
-      previous = previous->next_node;
-    }
-
-  }
-  curproc->num_free += 1;
-
-  return 0;
 }
