@@ -16,7 +16,7 @@ uint ticks;
 
 void
 tvinit(void)
-{
+{  
   int i;
 
   for(i = 0; i < 256; i++)
@@ -31,6 +31,12 @@ idtinit(void)
 {
   lidt(idt, sizeof(idt));
 }
+
+void
+pagefault_handler(struct trapframe *tf)
+{
+  /* data */
+};
 
 //PAGEBREAK: 41
 void
@@ -76,6 +82,9 @@ trap(struct trapframe *tf)
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
+    break;
+  case T_PGFLT:
+    pagefault_handler(tf);
     break;
 
   //PAGEBREAK: 13

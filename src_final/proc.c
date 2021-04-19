@@ -640,17 +640,17 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       // cprintf("the address we are mapping to is %p\n", closest_addr);
     }
 
-    if(allocuvm(curproc->pgdir, (uint)closest_addr, (uint)closest_addr + length) == 0){
-      cprintf("out o memory \n");
-    }
-    lcr3(V2P(curproc->pgdir));
+    // if(allocuvm(curproc->pgdir, (uint)closest_addr, (uint)closest_addr + length) == 0){
+    //   cprintf("out o memory \n");
+    // }
+    // lcr3(V2P(curproc->pgdir));
 
     // print_node(closest_node);
     return_addr = (void*)closest_addr;
     } else{ // just allocate from bottom of the stack
-      if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
-        cprintf("out o memory \n");
-      }
+      // if(allocuvm(curproc->pgdir, PGROUNDUP(curproc->sz), curproc->sz+length) == 0 ){
+      //   cprintf("out o memory \n");
+      // }
       return_addr = (void*)curproc->sz;
       // cprintf("the return address is now %d \n ", (uint)return_addr);
       curproc->sz += length;
@@ -733,8 +733,8 @@ int munmap(void* addr, uint length){
   }
   if (node_hit != 0){
     memset(addr, 0, length);
-    deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
-    lcr3(V2P(curproc->pgdir));
+    // deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
+    // lcr3(V2P(curproc->pgdir));
     curproc->num_mmap--;
     kmfree(node_hit);
   }
