@@ -16,7 +16,7 @@ uint ticks;
 
 void
 tvinit(void)
-{
+{  
   int i;
 
   for(i = 0; i < 256; i++)
@@ -31,6 +31,36 @@ idtinit(void)
 {
   lidt(idt, sizeof(idt));
 }
+
+void
+pagefault_handler(struct trapframe *tf)
+{
+  mmap_node * node_check = 0;
+  void* fault_addr = (void*)PGROUNDDOWN(rcr2());
+  node_check = myproc()->first_node;
+
+  while((int)node_check->addr % PGSIZE == 0){
+    // cprintf("the addr is %x and the addr + legth is %x an dthe fault addr is %x\n", node_check->addr,(node_check->addr + node_check->legth), fault_addr);
+    if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth)){
+      char *mem = kalloc();
+      mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U);
+      return;
+    }
+    node_check = node_check->next_node;
+  }
+  
+
+  /* decoding stuff required */
+  cprintf("============in pagefault_handler============\n");
+  cprintf("pid %d %s: trap %d err %d on cpu %d "
+          "eip 0x%x addr 0x%x\n",
+          myproc()->pid, myproc()->name, tf->trapno,
+          tf->err, cpuid(), tf->eip, fault_addr);
+  myproc()->killed = 1;
+  panic("trap");
+  return;
+
+};
 
 //PAGEBREAK: 41
 void
@@ -76,6 +106,9 @@ trap(struct trapframe *tf)
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
+    break;
+  case T_PGFLT:
+    pagefault_handler(tf);
     break;
 
   //PAGEBREAK: 13

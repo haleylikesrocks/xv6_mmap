@@ -9,6 +9,8 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+// #ifndef __ASSEMBLER__
+typedef uint pte_t;
 
 // bio.c
 void            binit(void);
@@ -33,6 +35,7 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+int             fileseek(struct file*, uint);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
@@ -120,6 +123,13 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void*           mmap(void*, int, int, int, int, int);
+int             munmap(void*, uint);
+int             msync(void*, int);
+
+//kmalloc.c
+void*           kmalloc(uint);
+void            kmfree(void*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -185,6 +195,8 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+pte_t*          walkpgdir(pde_t *, const void *, int);
+int             mappages(pde_t *, void *, uint, uint, int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
