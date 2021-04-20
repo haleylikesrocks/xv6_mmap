@@ -764,7 +764,10 @@ int munmap(void* addr, uint length){
     if((pte = walkpgdir(curproc->pgdir, node_hit->addr, 0)) == 0){
      memset(addr, 0, length); 
     }
-    
+    if(node_hit->region_type == MAP_FILE){
+      fileclose(curproc->ofile[node_hit->fd]);
+      curproc->ofile[node_hit->fd];
+    }
     // deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
     // lcr3(V2P(curproc->pgdir));
     curproc->num_mmap--;
@@ -822,5 +825,9 @@ int munmap(void* addr, uint length){
   }
   curproc->num_free += 1;
 
+  return 0;
+}
+
+int msync(void * start_addt, int length){
   return 0;
 }

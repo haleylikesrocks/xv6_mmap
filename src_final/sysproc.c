@@ -136,3 +136,12 @@ int sys_munmap(void){
   return (int)munmap((void*)addr, length);
   // return 0;
 }
+
+int sys_msync(void){
+  int length, addr;
+
+  if(argint(0, &addr) < 0 || argint(1, &length) < 0)
+    return -1;
+  
+  return (int)msync((void*)addr, length);
+}

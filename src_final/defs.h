@@ -125,6 +125,7 @@ void            wakeup(void*);
 void            yield(void);
 void*           mmap(void*, int, int, int, int, int);
 int             munmap(void*, uint);
+int             msync(void*, int);
 
 //kmalloc.c
 void*           kmalloc(uint);
