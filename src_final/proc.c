@@ -571,9 +571,21 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
   }
   if(flags == MAP_FILE){
-    if(fd > -1){
-      
+    // if(fd > -1){
+    //   int new_fd = dup(fd);
+    //   if(new_fd == -1){
+    //     return (void*) -1;
+    //   }
+    // }
+    struct file* f; 
+    f = fdopen(fd);
+    if(f == -1 ){
+      return (void*) -1;
     }
+    // if((fd=fdalloc(curproc->ofile[fd])) < 0)
+    //   return -1;
+
+    filedup(f);
   }
   
   length = PGROUNDUP(length);
