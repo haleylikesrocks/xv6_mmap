@@ -828,6 +828,56 @@ int munmap(void* addr, uint length){
   return 0;
 }
 
-int msync(void * start_addt, int length){
+int msync(void * start_addr, int length){
+  struct proc *curproc = myproc();
+  mmap_node *prev = curproc->first_node; 
+  mmap_node * node_hit = 0;
+  length = PGROUNDUP(length);
+
+  if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
+    return -1;
+  }
+  prev = curproc->first_node;
+  int counter = curproc->num_mmap;
+  // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
+  while(counter > 0){
+    // check to see if it is the first node
+    if(curproc->first_node->addr == start_addr && curproc->first_node->legth == length){
+      node_hit = curproc->first_node;
+      if(counter > 1){
+        curproc->first_node = curproc->first_node->next_node;
+      } else {
+        curproc->first_node = 0;
+      }
+    break;
+    }
+    // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
+    if (prev->next_node->addr == start_addr && prev->next_node->legth == length){ // got a hit
+      node_hit = prev->next_node; 
+      prev->next_node = node_hit->next_node; // prev node no longer points to node hit
+      break;
+    }
+    if((int)prev->next_node->addr % PGSIZE != 0){ // we reached the last node with no hits
+      return -1;
+    }
+    prev = prev->next_node;
+    counter --;
+  }
+
+  if(fileseek(curproc->ofile[node_hit->fd], node_hit->offset) != 0){
+    return -1;
+  }
+  pte_t *pte;
+  void *page_check = node_hit->addr;
+
+  while (page_check < node_hit->addr + node_hit->legth)
+  {
+    /* code */
+    if((pte =walkpgdir(curproc->pgdir, page_check, 0)) ==0){
+      continue;
+    }
+    filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
+    page_check = (void *)((int)page_check + PGSIZE);
+  }
   return 0;
 }
