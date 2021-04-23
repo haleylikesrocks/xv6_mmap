@@ -40,26 +40,42 @@ pagefault_handler(struct trapframe *tf)
   void* fault_addr = (void*)PGROUNDDOWN(rcr2());
   node_check = myproc()->first_node;
   int counter = 0;
+  char *mem = 0;
+  // pte_t *pte;
 
   while((int)node_check->addr % PGSIZE == 0){
     counter++;
     // cprintf("the counter is %d \n ", counter);
     // cprintf("the addr is %x and the addr + legth is %x an dthe fault addr is %x\n", node_check->addr,(node_check->addr + node_check->legth), fault_addr);
     if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth + PGSIZE)){
-      char *mem = kalloc();
       if(node_check->protection & PROT_WRITE) {
        
-        cprintf("we are here\n");
-        char *mem = kalloc();
-        if(mem == 0){
+        // cprintf("we are here\n");
+        mem = kalloc();
+        if((int)mem == 0){
           return;
         }
         memset(mem, 0 , PGSIZE);
         mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U); 
       } else {
+        if(tf->err & 0x2){
+          // cprintf("trying to write when not allowed\n");
+          break;
+        }
+        // pte = walkpgdir(myproc()->pgdir, fault_addr, 0);
+        // if(pte){
+        //   exit();
+        // }
         // cprintf("we shouldn't be here\n");
-        mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), ~PTE_W|PTE_U);
-        exit();
+        mem = kalloc();
+        if((int)mem == 0){
+          return;
+        }
+
+        memset(mem, 0 , PGSIZE);
+        mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_U);
+        // exit();
+        return;
       }
       return;
     }
@@ -129,7 +145,8 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     pagefault_handler(tf);
-    break;
+    // cprintf("we here\n");
+    return;
 
   //PAGEBREAK: 13
   default:

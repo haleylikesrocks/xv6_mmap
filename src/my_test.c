@@ -26,8 +26,8 @@ main(int argc, char *argv[])
     exit();
   }
   printf(1, "XV6_TEST_OUTPUT : mmap good\n");
-
-
+  
+  // printf(1, "hiiiiiiiii\n");
   printf(1, "XV6_TEST_OUTPUT : Strlen Before modification: %d\n", strlen((char*)str));
 
   strcpy(str, "012345"); //This should fail
