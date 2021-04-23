@@ -61,7 +61,7 @@ pagefault_handler(struct trapframe *tf)
       } else {
         if(tf->err & 0x2){
           // cprintf("trying to write when not allowed\n");
-          // break;
+          break;
         }
         // cprintf("we shouldn't be here\n");
         mem = kalloc();
@@ -83,12 +83,6 @@ pagefault_handler(struct trapframe *tf)
     }
     node_check = node_check->next_node;
   }
-
-  // if(node_check->region_type == MAP_FILE){
-  //   //read contents of file into mapped region
-  //   fileseek(myproc()->ofile[node_check->fd], node_check->offset);
-  //   fileread(myproc()->ofile[node_check->fd], mem, PGSIZE);
-  // }
   
   if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
