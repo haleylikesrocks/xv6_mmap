@@ -586,6 +586,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     //   return -1;
 
     filedup(curproc->ofile[fd]);
+    
   }
   
   length = PGROUNDUP(length);
@@ -689,6 +690,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   p->region_type = flags;
   p->offset = offset;
   p->fd = fd;
+  p->protection = prot;
   // print_node(p);
   // adding data to the linked list
   if(curproc->num_mmap == 0){ // firist time mmap has been called fo rthis proccesss

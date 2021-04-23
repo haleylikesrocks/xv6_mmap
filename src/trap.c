@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "mman.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
@@ -38,29 +39,48 @@ pagefault_handler(struct trapframe *tf)
   mmap_node * node_check = 0;
   void* fault_addr = (void*)PGROUNDDOWN(rcr2());
   node_check = myproc()->first_node;
+  int counter = 0;
 
   while((int)node_check->addr % PGSIZE == 0){
+    counter++;
+    // cprintf("the counter is %d \n ", counter);
     // cprintf("the addr is %x and the addr + legth is %x an dthe fault addr is %x\n", node_check->addr,(node_check->addr + node_check->legth), fault_addr);
-    if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth)){
+    if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth + PGSIZE)){
       char *mem = kalloc();
-      mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U);
+      if(node_check->protection & PROT_WRITE) {
+       
+        cprintf("we are here\n");
+        char *mem = kalloc();
+        if(mem == 0){
+          return;
+        }
+        memset(mem, 0 , PGSIZE);
+        mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U); 
+      } else {
+        // cprintf("we shouldn't be here\n");
+        mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), ~PTE_W|PTE_U);
+        exit();
+      }
       return;
     }
     node_check = node_check->next_node;
+
   }
   
-
-  /* decoding stuff required */
-  cprintf("============in pagefault_handler============\n");
-  cprintf("pid %d %s: trap %d err %d on cpu %d "
+  if(myproc() == 0 || (tf->cs&3) == 0){
+      // In kernel, it must be our mistake.
+      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+              tf->trapno, cpuid(), tf->eip, rcr2());
+      panic("trap");
+    }
+    // In user space, assume process misbehaved.
+    cprintf("============in pagefault_handler============\n");
+    cprintf("pid %d %s: trap %d err %d on cpu %d "
           "eip 0x%x addr 0x%x\n",
           myproc()->pid, myproc()->name, tf->trapno,
           tf->err, cpuid(), tf->eip, fault_addr);
-  myproc()->killed = 1;
-  panic("trap");
-  return;
-
-};
+    myproc()->killed = 1;
+  }
 
 //PAGEBREAK: 41
 void

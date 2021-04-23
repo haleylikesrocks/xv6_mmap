@@ -44,6 +44,7 @@ typedef struct mmap_node{
   int region_type;
   int offset;
   int fd;
+  int protection;
 } mmap_node;
 
 // Per-process state
