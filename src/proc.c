@@ -726,6 +726,9 @@ int munmap(void* addr, uint length){
   mmap_node *prev = curproc->first_node; 
   mmap_node * node_hit = 0;
   length = PGROUNDUP(length);
+  // int counter = 2;
+
+  // cprintf("hello welcom to unmapp \n");
 
   if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
     return -1;
@@ -737,8 +740,10 @@ int munmap(void* addr, uint length){
 
   prev = curproc->first_node;
   int counter = curproc->num_mmap;
+  // cprintf("hello\n");
   // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
   while(counter > 0){
+
     // check to see if it is the first node
     if(curproc->first_node->addr == addr && curproc->first_node->legth == length){
       node_hit = curproc->first_node;
@@ -749,7 +754,7 @@ int munmap(void* addr, uint length){
       }
     break;
     }
-    // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
+    cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
     if (prev->next_node->addr == addr && prev->next_node->legth == length){ // got a hit
       node_hit = prev->next_node; 
       prev->next_node = node_hit->next_node; // prev node no longer points to node hit
@@ -763,12 +768,16 @@ int munmap(void* addr, uint length){
   }
   pte_t *pte;
   if (node_hit != 0){
+    // cprintf("it could be walking the pgdir\n");
     if((pte = walkpgdir(curproc->pgdir, node_hit->addr, 0)) == 0){
-     memset(addr, 0, length); 
+      // cprintf("might be the memset\n");
+      memset(addr, 0, length); 
     }
     if(node_hit->region_type == MAP_FILE){
+      // cprintf("is this the location of the trap?\n");
       fileclose(curproc->ofile[node_hit->fd]);
       curproc->ofile[node_hit->fd] = 0;
+      // cprintf("no\n");
     }
     // deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
     // lcr3(V2P(curproc->pgdir));
@@ -846,17 +855,11 @@ int msync(void * start_addr, int length){
     // check to see if it is the first node
     if(curproc->first_node->addr == start_addr && curproc->first_node->legth == length){
       node_hit = curproc->first_node;
-      if(counter > 1){
-        curproc->first_node = curproc->first_node->next_node;
-      } else {
-        curproc->first_node = 0;
-      }
     break;
     }
     // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
     if (prev->next_node->addr == start_addr && prev->next_node->legth == length){ // got a hit
       node_hit = prev->next_node; 
-      prev->next_node = node_hit->next_node; // prev node no longer points to node hit
       break;
     }
     if((int)prev->next_node->addr % PGSIZE != 0){ // we reached the last node with no hits
