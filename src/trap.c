@@ -57,15 +57,12 @@ pagefault_handler(struct trapframe *tf)
         }
         memset(mem, 0 , PGSIZE);
         mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U); 
+        // break;
       } else {
         if(tf->err & 0x2){
           // cprintf("trying to write when not allowed\n");
-          break;
+          // break;
         }
-        // pte = walkpgdir(myproc()->pgdir, fault_addr, 0);
-        // if(pte){
-        //   exit();
-        // }
         // cprintf("we shouldn't be here\n");
         mem = kalloc();
         if((int)mem == 0){
@@ -75,13 +72,23 @@ pagefault_handler(struct trapframe *tf)
         memset(mem, 0 , PGSIZE);
         mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_U);
         // exit();
-        return;
+        // break;
+      }
+      if(node_check->region_type == MAP_FILE){
+        //read contents of file into mapped region
+        fileseek(myproc()->ofile[node_check->fd], node_check->offset);
+        fileread(myproc()->ofile[node_check->fd], mem, PGSIZE);
       }
       return;
     }
     node_check = node_check->next_node;
-
   }
+
+  // if(node_check->region_type == MAP_FILE){
+  //   //read contents of file into mapped region
+  //   fileseek(myproc()->ofile[node_check->fd], node_check->offset);
+  //   fileread(myproc()->ofile[node_check->fd], mem, PGSIZE);
+  // }
   
   if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.

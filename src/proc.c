@@ -582,8 +582,8 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     // if(f == -1 ){
     //   return (void*) -1;
     // }
-    // if((fd=fdalloc(curproc->ofile[fd])) < 0)
-    //   return -1;
+    if((fd=fdalloc(curproc->ofile[fd])) < 0)
+      return (void*)-1;
 
     filedup(curproc->ofile[fd]);
     
