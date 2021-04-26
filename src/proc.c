@@ -205,10 +205,49 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  *np->free_mmap = *curproc->free_mmap; // hr - copy over everything for mmap
   np->num_free = curproc->num_free;
   np->num_mmap = curproc->num_mmap;
-  *np->first_node = *curproc->first_node;
+
+  if(np->num_mmap > 0){
+    mmap_node *old_node =  curproc->first_node;
+    mmap_node *new_prev_node;
+    mmap_node *new_first_node = kmalloc(sizeof(mmap_node));
+    *new_first_node = *old_node;
+    np->first_node = new_first_node;
+    old_node = old_node->next_node;
+    new_prev_node = np->first_node;
+
+    while ((int)old_node->addr % PGSIZE == 0)
+    {
+      mmap_node *new_node = kmalloc(sizeof(mmap_node));
+      *new_node = *old_node;
+      *new_prev_node->next_node = *new_node;
+      new_prev_node = new_prev_node->next_node;
+      old_node = old_node -> next_node;
+    }
+  }
+
+  if(np->num_free >0){
+
+    mmap_node * old_node = curproc->free_mmap;
+    mmap_node *new_prev_node;
+
+    mmap_node *new_first_free = kmalloc(sizeof(mmap_node));
+    *new_first_free = *old_node;
+    np->free_mmap = new_first_free;
+    old_node = old_node->next_node;
+    new_prev_node = np->free_mmap;
+
+    while ((int)old_node->addr % PGSIZE == 0)
+    {
+      mmap_node *new_node = kmalloc(sizeof(mmap_node));
+      *new_node = *old_node;
+      *new_prev_node->next_node = *new_node;
+      new_prev_node = new_prev_node->next_node;
+      old_node = old_node -> next_node;
+    }
+  }
+  
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
