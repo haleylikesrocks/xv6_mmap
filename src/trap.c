@@ -78,6 +78,11 @@ pagefault_handler(struct trapframe *tf)
         //read contents of file into mapped region
         fileseek(myproc()->ofile[node_check->fd], node_check->offset);
         fileread(myproc()->ofile[node_check->fd], mem, PGSIZE);
+        // need to clear dirty bit
+        pte_t *pte = walkpgdir(myproc()->pgdir, fault_addr, 0);
+        if(pte){
+          *pte &= ~PTE_D;
+        }
       }
       return;
     }

@@ -917,9 +917,10 @@ int msync(void * start_addr, int length){
   while (page_check < node_hit->addr + node_hit->legth)
   {
     /* code */
-    if((pte =walkpgdir(curproc->pgdir, page_check, 0)) ==0){
+    if((pte = walkpgdir(curproc->pgdir, page_check, 0)) == 0 || (int)pte & PTE_D){
       continue;
     }
+    cprintf("not sure if I am doing the dirty bit correctly\n");
     filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
     page_check = (void *)((int)page_check + PGSIZE);
   }
