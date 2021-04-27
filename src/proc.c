@@ -917,17 +917,12 @@ int msync(void * start_addr, int length){
   while (page_check < node_hit->addr + node_hit->legth)
   {
     pte = walkpgdir(curproc->pgdir, page_check, 0);
-    cprintf("the pte is %p\n", pte);
-    /* code */
+    // cprintf("the pte is %p\n", pte);
     if(pte != 0 && *pte & PTE_D){
       filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
-      cprintf("is page check less than %p \n", node_hit->addr + node_hit->legth);
-      // page_check = (void *)((int)page_check + PGSIZE);
+      // cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
     }
-    cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
-    
-    // filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
-    // cprintf("is page check less than %p \n", node_hit->addr + node_hit->legth);
+    // cprintf("is page check: %p less than %p \n", page_check, node_hit->addr + node_hit->legth);
     page_check = (void *)((int)page_check + PGSIZE);
   }
   return 0;

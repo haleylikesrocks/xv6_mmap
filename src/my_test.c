@@ -86,8 +86,9 @@ main(int argc, char *argv[])
     exit();
   }
   printf(1, "XV6_TEST_OUTPUT : mmap suceeded\n");
-
-  char* middle_addr =  addr + PGSIZE;
+  printf(1, "the address is %p\n", addr);
+  char* middle_addr =  (char*)((int)addr + PGSIZE);
+  printf(1, "the middle address is %p\n", middle_addr);
 
   // Print the mmap-ed region.
   strcpy(buff, middle_addr);
