@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 
   // mmap the file
   int file_offset = 0;
-  int map_size = 50;
+  int map_size = 12000;
   char *addr = (char *) mmap(0, map_size, PROT_WRITE, MAP_FILE, fd, file_offset);
 
   if (addr<=0)
@@ -87,16 +87,16 @@ main(int argc, char *argv[])
   }
   printf(1, "XV6_TEST_OUTPUT : mmap suceeded\n");
 
-
+  char* middle_addr =  addr + PGSIZE;
 
   // Print the mmap-ed region.
-  strcpy(buff, addr);
+  strcpy(buff, middle_addr);
   printf(1, "XV6_TEST_OUTPUT : Before mysnc, content in mmap-ed region: %s\n", buff);
 
 
 
   // write to the file-backed mmap memory region.
-  strcpy((char*)addr, "This is overwritten content.!");
+  strcpy((char*)middle_addr, "This is overwritten content.!");
 
 
 
@@ -106,7 +106,7 @@ main(int argc, char *argv[])
 
 
   // Print the mmap-ed region.
-  strcpy(buff, addr);
+  strcpy(buff, middle_addr);
   printf(1, "XV6_TEST_OUTPUT : After mysnc, content in the mmap-ed region : %s\n", buff);
 
   // Print the file contents
