@@ -297,6 +297,19 @@ freevm(pde_t *pgdir)
     }
   }
   kfree((char*)pgdir);
+
+  while(myproc()->num_free > 0){
+    mmap_node *node = myproc()->free_mmap;
+    myproc()->free_mmap = node->next_node;
+    kmfree(node);
+    myproc()->num_free--;
+  }
+  while(myproc()->num_mmap > 1){
+    mmap_node *node = myproc()->first_node;
+    myproc()->first_node = node->next_node;
+    kmfree(node);
+    myproc()->num_mmap--; 
+  }
 }
 
 // Clear PTE_U on a page. Used to create an inaccessible

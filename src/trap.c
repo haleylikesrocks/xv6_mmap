@@ -57,6 +57,7 @@ pagefault_handler(struct trapframe *tf)
         }
         memset(mem, 0 , PGSIZE);
         mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_W|PTE_U); 
+        lcr3(V2P(myproc()->pgdir));
         // break;
       } else {
         if(tf->err & 0x2){
@@ -71,6 +72,7 @@ pagefault_handler(struct trapframe *tf)
 
         memset(mem, 0 , PGSIZE);
         mappages(myproc()->pgdir, (char*)fault_addr, PGSIZE, V2P(mem), PTE_U);
+        lcr3(V2P(myproc()->pgdir));
         // exit();
         // break;
       }
