@@ -21,6 +21,16 @@ fetchint(uint addr, int *ip)
 
   if(addr >= curproc->sz || addr+4 > curproc->sz)
     return -1;
+  //hr- check addr is not in freed pages
+  mmap_node *node = curproc->free_mmap;
+
+  while((int)node->addr % PGSIZE == 0){
+    if((uint)addr >= (uint)node->addr && (uint)addr <= (uint)node->addr + node->legth){
+      return -1;
+    }
+    node = node->next_node;
+  }
+  
   *ip = *(int*)(addr);
   return 0;
 }
@@ -36,6 +46,17 @@ fetchstr(uint addr, char **pp)
 
   if(addr >= curproc->sz)
     return -1;
+  
+  // hr - check on arg point addr
+  mmap_node *node = curproc->free_mmap;
+
+  while((int)node->addr % PGSIZE == 0){
+    if((uint)addr >= (uint)node->addr && (uint)addr <= (uint)node->addr + node->legth){
+      return -1;
+    }
+    node = node->next_node;
+  }
+  
   *pp = (char*)addr;
   ep = (char*)curproc->sz;
   for(s = *pp; s < ep; s++){
@@ -65,6 +86,17 @@ argptr(int n, char **pp, int size)
     return -1;
   if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
     return -1;
+  
+  // hr - check on arg point addr
+  mmap_node *node = curproc->free_mmap;
+
+  while((int)node->addr % PGSIZE == 0){
+    if((uint)i >= (uint)node->addr && (uint)i <= (uint)node->addr + node->legth){
+      return -1;
+    }
+    node = node->next_node;
+  }
+
   *pp = (char*)i;
   return 0;
 }

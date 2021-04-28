@@ -8,138 +8,32 @@
 #include "traps.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "mman.h"
-
-/* File Backed mmap test : testing msync */
-
-int PrintFileContents(char* fileName)
-{
-  int fd = open(fileName, O_RDONLY);
-  if(fd<=0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : file open failed %d inside PrintFileContents function.\n", fd);
-    return 0;
-  }
 
 
-  char buff[256];
-  int sz = read(fd, buff, 50);
-  buff[sz] = '\0';
-  
-  printf(1, "XV6_TEST_OUTPUT : file content now : < %s >\n", (char*)buff);
-
-  // close file
-  int rc = close(fd);
-  if(rc != 0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : file close failed inside PrintFileContents function.\n");
-    return 0;
-  }
-
-  return 1;
-}
-
+/* Check to make sure kernel checks for freed address in between */
 int
 main(int argc, char *argv[])
-{  
-  /*
-  Print the contents of file
-  Open an existing file.
-  mmap it.
-  write to the memory mapped region.
-  msync.
-  munmap.
-  Check file for newly written content.
-  close the file.
-  */
-  int rc;
-  char buff[256];
-  char fileName[50]="sample.txt";
+{
+  int size = PGSIZE;
 
+  mmap(0, size, 0, 0, -1, 0);
+  char* a2 = mmap(0, size, 0, 0, -1, 0);
+  mmap(0, size, 0, 0, -1, 0);
+  
+  if (munmap(a2, size) < 0)
+    printf(1, "XV6_TEST_OUTPUT: munmap failed\n");
 
-  // Print the file contents
-  if(!PrintFileContents(fileName))
-  {
-    printf(1, "XV6_TEST_OUTPUT : Printing file content failed.\n");
-    exit();
-  }
+  printf(1, "about to enter exec\n");
 
+  // random addresses inside freed page
+  exec(a2 + 105, (char**) (a2 + 800));
 
-  // Open file in Read-Write mode
-  int fd = open(fileName, O_RDWR);
-  if(fd<=0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : file open failed %d\n", fd);
-    exit();
-  }
-  printf(1, "XV6_TEST_OUTPUT : file open suceeded\n");
+  printf(1, "XV6_TEST_OUTPUT: should print\n");
+  printf(1, "XV6_TEST_OUTPUT: test10 passed\n");
 
+  *a2 = 0;
 
-  // mmap the file
-  int file_offset = 0;
-  int map_size = 12000;
-  char *addr = (char *) mmap(0, map_size, PROT_WRITE, MAP_FILE, fd, file_offset);
-
-  if (addr<=0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : mmap failed\n");
-    exit();
-  }
-  printf(1, "XV6_TEST_OUTPUT : mmap suceeded\n");
-  printf(1, "the address is %p\n", addr);
-  char* middle_addr =  (char*)((int)addr + PGSIZE);
-  printf(1, "the middle address is %p\n", middle_addr);
-
-  // Print the mmap-ed region.
-  strcpy(buff, middle_addr);
-  printf(1, "XV6_TEST_OUTPUT : Before mysnc, content in mmap-ed region: %s\n", buff);
-
-
-
-  // write to the file-backed mmap memory region.
-  strcpy((char*)middle_addr, "This is overwritten content.!");
-
-
-
-  // call msync
-  printf(1, "XV6_TEST_OUTPUT : msync return val : %d\n", msync(addr, map_size));
-
-
-
-  // Print the mmap-ed region.
-  strcpy(buff, middle_addr);
-  printf(1, "XV6_TEST_OUTPUT : After mysnc, content in the mmap-ed region : %s\n", buff);
-
-  // Print the file contents
-  if(!PrintFileContents(fileName))
-  {
-    printf(1, "XV6_TEST_OUTPUT : Printing file content failed.\n");
-    exit();
-  }
-
-
-
-  //munmap
-  rc = munmap(addr, map_size);
-  if (rc < 0) 
-  {
-    printf(1, "XV6_TEST_OUTPUT : munmap failed\n");
-    exit();
-  }
-  printf(1, "XV6_TEST_OUTPUT : munmap suceeded\n");
-
-
-
-  // close file
-  rc = close(fd);
-  if(rc != 0)
-  {
-    printf(1, "XV6_TEST_OUTPUT : file close failed\n");
-    exit();
-  }
-  printf(1, "XV6_TEST_OUTPUT : file close suceeded\n");
-
-
-
+  printf(1, "XV6_TEST_OUTPUT: shouldn't print\n");
+  
   exit();
 }
