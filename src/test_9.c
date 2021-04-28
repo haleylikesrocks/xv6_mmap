@@ -8,6 +8,7 @@
 #include "traps.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "mman.h"
 
 int memcmp(char* start, uint size, char val) {
     for (uint i = 0; i < size; i++) {
@@ -23,12 +24,12 @@ main(int argc, char *argv[])
 {
   int size = PGSIZE;
 
-  char* a1 = mmap(0, size, 0, 0, -1, 0);
-  char* a2 = mmap(0, size, 0, 0, -1, 0);
+  char* a1 = mmap(0, size, PROT_WRITE, 0, -1, 0);
+  char* a2 = mmap(0, size, PROT_WRITE, 0, -1, 0);
   munmap(a1, size);
   munmap(a2, size);
 
-  char* a3 = mmap(a1, size, 0, 0, -1, 0);
+  char* a3 = mmap(a1, size, PROT_WRITE, 0, -1, 0);
 
   if (a3 != a1)
     printf(1, "XV6_TEST_OUTPUT: closest address not chosen\n");

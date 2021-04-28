@@ -8,6 +8,7 @@
 #include "traps.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "mman.h"
 
 int memcmp(char* start, uint size, char val) {
     for (uint i = 0; i < size; i++) {
@@ -23,9 +24,9 @@ main(int argc, char *argv[])
 {
   int size =  2*PGSIZE;
 
-  char* a1 = mmap(0, size, 0, 0, -1, 0);
+  char* a1 = mmap(0, size, PROT_WRITE, 0, -1, 0);
   char* m1 = malloc(size);
-  char* a2 = mmap(0, size, 0, 0, -1, 0);
+  char* a2 = mmap(0, size, PROT_WRITE, 0, -1, 0);
 
   memset(a1, 1, size);
   memset(m1, 2, size);
@@ -45,7 +46,7 @@ main(int argc, char *argv[])
 
   wait();
 
-  char* a3 = mmap(0, size, 0, 0, -1, 0);
+  char* a3 = mmap(0, size, PROT_WRITE, 0, -1, 0);
 
   if (a3 == a1 || a3 == a2) {
       printf(1, "XV6_TEST_OUTPUT: reuse of address\n");
