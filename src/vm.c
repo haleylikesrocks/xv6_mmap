@@ -298,7 +298,7 @@ freevm(pde_t *pgdir)
   }
   kfree((char*)pgdir);
 
-  while(myproc()->num_free > 0){
+  while(myproc()->num_free > 1){
     mmap_node *node = myproc()->free_mmap;
     myproc()->free_mmap = node->next_node;
     kmfree(node);
