@@ -41,16 +41,11 @@ pagefault_handler(struct trapframe *tf)
   node_check = myproc()->first_node;
   int counter = 0;
   char *mem = 0;
-  // pte_t *pte;
 
   while((int)node_check->addr % PGSIZE == 0){
     counter++;
-    // cprintf("the counter is %d \n ", counter);
-    // cprintf("the addr is %x and the addr + legth is %x an dthe fault addr is %x\n", node_check->addr,(node_check->addr + node_check->legth), fault_addr);
     if(fault_addr >= node_check->addr && fault_addr < (node_check->addr + node_check->legth + PGSIZE)){
       if(node_check->protection & PROT_WRITE) {
-       
-        // cprintf("we are here\n");
         mem = kalloc();
         if((int)mem == 0){
           return;

@@ -7,6 +7,12 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "mman.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+#include "stat.h"
+
+
 
 struct {
   struct spinlock lock;
@@ -599,28 +605,23 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
   // cprintf("welcome to mmap\n");
 
-  if(length < 1){ // you can't map nothing
+  if(length < 1){
     return (void*)-1;
   }
 
-  if(flags == MAP_ANONYMOUS){
+  if(flags == MAP_ANONYMOUS){ 
     if(fd != -1){
-      return (void*) -1;
+      return (void*)-1;
     }
 
   }
   if(flags == MAP_FILE){
-    // if(fd > -1){
-    //   int new_fd = dup(fd);
-    //   if(new_fd == -1){
-    //     return (void*) -1;
-    //   }
-    // }
-    // struct file* f; 
-    // f = fdopen(fd);
-    // if(f == -1 ){
-    //   return (void*) -1;
-    // }
+
+    if(fd < 0 || fd >= NOFILE || ((int)curproc->ofile[fd] == 0) || curproc->ofile[fd]->type != FD_INODE || curproc->ofile[fd]->ip->type != T_FILE){ /// taken from arg fd
+      cprintf("this should print because the ofile[fd] is %d \n ", curproc->ofile[fd]);
+      return (void*)-1;
+    }
+
     if((fd=fdalloc(curproc->ofile[fd])) < 0)
       return (void*)-1;
 
@@ -630,20 +631,13 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   
   length = PGROUNDUP(length);
   distance = curproc->sz - (uint)addr;
-  int round_addr = PGROUNDUP((int)addr);
+  int round_addr = PGROUNDUP((int)addr);/// might want to add a kernbase check
 
   /* this is where our search for the best location begins */
-  
-  // look for large enough mmap allocte space in the linked list 
-  // we'll call this the closest node
   if(curproc->num_free > 0){
     free_space = curproc->free_mmap;
     
-    while(1){ // looking for closest free space
-      if((int)free_space->addr % PGSIZE != 0){ // no list or end of list
-        break;
-      }
-
+    while((int)free_space->addr % PGSIZE != 0){ // looking for closest free space
       if(free_space->legth >= length){ // the space is large enough
         // cprintf("we have found a large enough space \n");
         if (distance > free_space->addr - addr){ // check if closest address space
@@ -920,10 +914,15 @@ int msync(void * start_addr, int length){
     // cprintf("the pte is %p\n", pte);
     if(pte != 0 && *pte & PTE_D){
       filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
-      // cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
+      cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
+    }else {
+      if(fileseek(curproc->ofile[node_hit->fd], PGSIZE) != 0){
+        return -1;
+      }
     }
     // cprintf("is page check: %p less than %p \n", page_check, node_hit->addr + node_hit->legth);
     page_check = (void *)((int)page_check + PGSIZE);
+    
   }
   return 0;
 }
