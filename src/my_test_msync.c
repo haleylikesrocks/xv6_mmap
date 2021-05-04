@@ -9,11 +9,13 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "mman.h"
+#include "file.h"
 
 /* File Backed mmap test : testing msync */
 
 int PrintFileContents(char* fileName)
 {
+  char c;
   int fd = open(fileName, O_RDONLY);
   if(fd<=0)
   {
