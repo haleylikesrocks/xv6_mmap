@@ -219,6 +219,14 @@ fork(void)
     mmap_node *new_prev_node;
     mmap_node *new_first_node = kmalloc(sizeof(mmap_node));
     *new_first_node = *old_node;
+    if(new_first_node->region_type == MAP_FILE){
+      int fd;
+      if((fd=fdalloc(curproc->ofile[new_first_node->fd])) < 0)
+        return -1;
+
+      filedup(curproc->ofile[fd]);
+      new_first_node->fd = fd;
+    }
     np->first_node = new_first_node;
     old_node = old_node->next_node;
     new_prev_node = np->first_node;
@@ -227,6 +235,14 @@ fork(void)
     {
       mmap_node *new_node = kmalloc(sizeof(mmap_node));
       *new_node = *old_node;
+      if(new_node->region_type == MAP_FILE){
+        int fd;
+        if((fd=fdalloc(curproc->ofile[new_node->fd])) < 0)
+          return -1;
+
+        filedup(curproc->ofile[fd]);
+        new_first_node->fd = fd;
+      }
       *new_prev_node->next_node = *new_node;
       new_prev_node = new_prev_node->next_node;
       old_node = old_node -> next_node;
@@ -876,7 +892,7 @@ int msync(void * start_addr, int length){
   struct proc *curproc = myproc();
   mmap_node *prev = curproc->first_node; 
   mmap_node * node_hit = 0;
-  length = PGROUNDUP(length);
+  int rounded_length = PGROUNDUP(length);
 
   if(curproc->num_mmap == 0){ //hr- number of mapped regions is zero
     return -1;
@@ -886,12 +902,12 @@ int msync(void * start_addr, int length){
   // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
   while(counter > 0){
     // check to see if it is the first node
-    if(curproc->first_node->addr == start_addr && curproc->first_node->legth == length){
+    if(curproc->first_node->addr == start_addr && curproc->first_node->legth == rounded_length){
       node_hit = curproc->first_node;
     break;
     }
     // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
-    if (prev->next_node->addr == start_addr && prev->next_node->legth == length){ // got a hit
+    if (prev->next_node->addr == start_addr && prev->next_node->legth == rounded_length){ // got a hit
       node_hit = prev->next_node; 
       break;
     }
@@ -907,19 +923,26 @@ int msync(void * start_addr, int length){
   }
   pte_t *pte;
   void *page_check = node_hit->addr;
+  int count = 0;
 
   while (page_check < node_hit->addr + node_hit->legth)
   {
+    count ++;
     pte = walkpgdir(curproc->pgdir, page_check, 0);
     // cprintf("the pte is %p\n", pte);
     if(pte != 0 && *pte & PTE_D){
-      filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
-      cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
-    }else {
-      if(fileseek(curproc->ofile[node_hit->fd], PGSIZE) != 0){
-        return -1;
+      if(length >= PGSIZE){
+        filewrite(curproc->ofile[node_hit->fd], page_check, PGSIZE);
+      } else {
+        filewrite(curproc->ofile[node_hit->fd], page_check, length);
       }
+      cprintf("not sure if I am doing the dirty bit correctly the addr is %p\n", page_check);
+    } else {
+      if(fileseek(curproc->ofile[node_hit->fd], node_hit->offset + count * PGSIZE) != 0){
+        return -1;
+      } 
     }
+    length -= PGSIZE;
     // cprintf("is page check: %p less than %p \n", page_check, node_hit->addr + node_hit->legth);
     page_check = (void *)((int)page_check + PGSIZE);
     

@@ -95,6 +95,11 @@ main(int argc, char *argv[])
   printf(1, "XV6_TEST_OUTPUT : Before mysnc, content in mmap-ed region: %s\n", buff);
 
 
+    int pid = fork();
+
+  if (pid < 0) {
+      printf(1, "XV6_TEST_OUTPUT: fork failed\n");
+  }
 
   // write to the file-backed mmap memory region.
   strcpy((char*)middle_addr, "This is overwritten content.!");
@@ -128,7 +133,7 @@ main(int argc, char *argv[])
   }
   printf(1, "XV6_TEST_OUTPUT : munmap suceeded\n");
 
-
+  wait();
 
   // close file
   rc = close(fd);
