@@ -803,7 +803,7 @@ int munmap(void* addr, uint length){
       }
     break;
     }
-    cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
+    // cprintf("the next node addr is %p and the addr passed in is %p\n", prev->next_node->addr, addr);
     if (prev->next_node->addr == addr && prev->next_node->legth == length){ // got a hit
       node_hit = prev->next_node; 
       prev->next_node = node_hit->next_node; // prev node no longer points to node hit
@@ -821,6 +821,8 @@ int munmap(void* addr, uint length){
     if((pte = walkpgdir(curproc->pgdir, node_hit->addr, 0)) == 0){
       // cprintf("might be the memset\n");
       memset(addr, 0, length); 
+      deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr); //hr - no sure of this....
+      lcr3(V2P(curproc->pgdir));
     }
     if(node_hit->region_type == MAP_FILE){
       // cprintf("is this the location of the trap?\n");
@@ -828,8 +830,6 @@ int munmap(void* addr, uint length){
       curproc->ofile[node_hit->fd] = 0;
       // cprintf("no\n");
     }
-    // deallocuvm(curproc->pgdir, (uint)node_hit->addr +length, (uint)node_hit->addr);
-    // lcr3(V2P(curproc->pgdir));
     curproc->num_mmap--;
     kmfree(node_hit);
   }
