@@ -56,10 +56,10 @@ pagefault_handler(struct trapframe *tf)
         // break;
       } else {
         if(tf->err & 0x2){
-          // cprintf("trying to write when not allowed\n");
+          cprintf("trying to write when not allowed\n");
           break;
         }
-        // cprintf("we shouldn't be here\n");
+        cprintf("we shouldn't be here\n");
         mem = kalloc();
         if((int)mem == 0){
           return;
@@ -88,6 +88,7 @@ pagefault_handler(struct trapframe *tf)
   
   if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
+      cprintf("in the trap handeler\n");
       cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
               tf->trapno, cpuid(), tf->eip, rcr2());
       panic("trap");

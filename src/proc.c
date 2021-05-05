@@ -619,7 +619,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   int distance;
   mmap_node *free_space=0, *prev_free =0, *closest_node=0, *prev_closest =0;
 
-  // cprintf("welcome to mmap\n");
+  cprintf("welcome to mmap\n");
 
   if(length < 1){
     return (void*)-1;
@@ -632,6 +632,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
 
   }
   if(flags == MAP_FILE){
+    cprintf("we should'n be here\n");
 
     if(fd < 0 || fd >= NOFILE || ((int)curproc->ofile[fd] == 0) || curproc->ofile[fd]->type != FD_INODE || curproc->ofile[fd]->ip->type != T_FILE){ /// taken from arg fd
       cprintf("this should print because the ofile[fd] is %d \n ", curproc->ofile[fd]);
@@ -644,6 +645,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
     filedup(curproc->ofile[fd]);
     
   }
+
   
   length = PGROUNDUP(length);
   distance = curproc->sz - (uint)addr;
@@ -653,9 +655,12 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
   if(curproc->num_free > 0){
     free_space = curproc->free_mmap;
     
-    while((int)free_space->addr % PGSIZE != 0){ // looking for closest free space
+    while(1){ // looking for closest free space
+      if((int)free_space->addr % PGSIZE != 0){
+        break;
+      }
       if(free_space->legth >= length){ // the space is large enough
-        // cprintf("we have found a large enough space \n");
+        cprintf("we have found a large enough space \n");
         if (distance > free_space->addr - addr){ // check if closest address space
           closest_addr = free_space->addr;
           closest_node = free_space;
@@ -667,8 +672,9 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       prev_free = free_space; 
       free_space =free_space->next_node;
     }
-    // cprintf("now that we have finished itterating:the closest node adress is %p\n", closest_addr);
+    cprintf("now that we have finished itterating:the closest node adress is %p\n", closest_addr);
     if(closest_node->legth == length){ // prefect fit
+      cprintf("perfect fit\n");
       if(prev_closest == 0){ // mapping into the first free space
         curproc->free_mmap= curproc->free_mmap->next_node;
       } else{ // mapping anywhere else
@@ -677,6 +683,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
       kmfree(closest_node);  // we can free the node because it is a perfect hit
       curproc->num_free -= 1;
     } else { // not a prefect fit
+    cprintf("not a perfect fit\n");
       // look for the best location within the space : ie is the exact location is avaible
       while(round_addr > (int)closest_node->addr ){
         if((uint)round_addr + length < (uint)closest_node->addr+closest_node->legth){
@@ -712,7 +719,7 @@ void* mmap(void* addr, int length, int prot, int flags, int fd, int offset){
         closest_node->next_node = closest_node->next_node->next_node;
         kmfree(closest_node->next_node);
       }
-      // cprintf("the address we are mapping to is %p\n", closest_addr);
+      cprintf("the address we are mapping to is %p\n", closest_addr);
     }
 
     // if(allocuvm(curproc->pgdir, (uint)closest_addr, (uint)closest_addr + length) == 0){
